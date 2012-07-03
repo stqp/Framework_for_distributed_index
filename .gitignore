@@ -1,0 +1,6 @@
+*~
+*.class
+
+testset/tmp
+testset/testset*
+*.dump

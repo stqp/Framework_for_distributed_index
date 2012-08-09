@@ -23,7 +23,7 @@ SRC_DIR=${MAIN_DIR}/${IMPL_NAME}
 EXP_DIR=/exp/naoki
 
 PGSQL_DIR=${EXP_DIR}/pgsql
-DATA_DIR=${MAIN_DIR}/data
+DATA_DIR=${MAIN_DIR}/dat      a
 if [ -d ${PGSQL_DIR}/data ] && [ -d ${DATA_DIR} ]
 then
     rm -rf ${PGSQL_DIR}/data/*

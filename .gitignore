@@ -1,6 +1,16 @@
-*~
-*.class
+.metadata
+.settings
+.gitignore
+
+analyzeResult
+bin
+lib
+logs
+testset
+.classpath
+.project
+.pydevproject
+compile.sh
 
 testset/tmp
 testset/testset*
-*.dump

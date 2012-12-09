@@ -38,29 +38,38 @@ NODE_LIST=${MAIN_DIR}/nodelist.txt
 #GET_DATA_DIR=${MAIN_DIR}/testset/testset2/get
 #RANGE_DATA_DIR=${MAIN_DIR}/testset/testset2/range
 
-PUT_DATA_DIR=${MAIN_DIR}/testset/testset2/fakeput
-GET_DATA_DIR=${MAIN_DIR}/testset/testset2/fakeget
+PUT_DATA_DIR=${MAIN_DIR}/testset/testset2/put
+GET_DATA_DIR=${MAIN_DIR}/testset/testset2/get
 RANGE_DATA_DIR=${MAIN_DIR}/testset/testset2/fakerange
 
 
-DEPLOY_DIR=/home/${USER}/${IMPL_NAME}
+DEPLOY_DIR=/home/${USER}/workspace/${IMPL_NAME}
 DEPLOY_DATA_DIR=${DEPLOY_DIR}/testset
 
 DEPLOY_JAVA="/usr/local/bin/java"
-DEPLOY_CLASSPATH=${DEPLOY_DIR}/${JAR_FILE}:${DEPLOY_DIR}/postgresql-9.1-902.jdbc4.jar
+DEPLOY_CLASSPATH=${DEPLOY_DIR}/${JAR_FILE}:${DEPLOY_DIR}/postgresql-9.1-902.jdbc4.jar:${DEPLOY_DIR}/gson-2.2.2.jar
 DEPLOY_PORT=18085
 
 DEPLOY_PSQL="psql -c "
 DEPLOY_TABLE="CREATE TABLE data (key VARCHAR(30), value VARCHAR(35));"
 
 
-##################################################
-# MY Settings
-##################################################
-METHOD_NAME="FatBtree"
-METHOD_PACKAGE_NAME="distributedIndex"
-TARGET_NODE_TO_SEND_LOG="dahlianame"
-LOGS=logs
-LOG_DIR=${DEPLOY_DIR}/${LOGS}
-SCRIPT_DIR=${DEPLOY_DIR}/script
 
+##################################################
+# MY Settings (my = tokuda's )
+##################################################
+#FatBtree,PRing,SkipGraph
+METHOD_NAME="SkipGraph"
+METHOD_PACKAGE_NAME="distributedIndex"
+#TARGET_NODE_TO_SEND_LOG="dahlianame"
+LOGS=logs
+LOG_DIR=${DEPLOY_DIR}/${LOGS}/${METHOD_NAME}
+SCRIPT_DIR=${DEPLOY_DIR}/script
+USER="tokuda"
+
+
+
+ANALYZER_PACKAGE_NAME="analyze"
+ANALYZER_MAIN_CLASS=${ANALYZER_PACKAGE_NAME}.Main
+ANALYZER_LIBS=:${DEPLOY_DIR}/lib/postgresql-9.1-902.jdbc4.jar:${DEPLOY_DIR}/lib/gson-2.2.2.jar
+ANALYZER_CLASSPATH=${DEPLOY_DIR}/lib/${JAR_FILE}${ANALYZER_LIBS}

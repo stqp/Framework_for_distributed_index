@@ -12,17 +12,21 @@ import loadBalance.LoadChecker;
 
 public class LoadAnalyzer extends AbstractAnalyzer{
 
-	
-	
 	private static char tabChar = '\t';
+	
 	private static char returnChar = '\n';
 
 	
-	private String result="result"+ returnChar;// <--いまは使ってない
+	private String result="";
+
 	private String checkLoadResult="checkLoadResult"+ returnChar;
+
 	private String loadResule="loadResult" + returnChar;
+
 	private String putResult="putResult"+ returnChar;
+
 	private String getResult="getResult"+ returnChar;
+
 	private String rangeResult="rangeResult"+ returnChar;
 
 
@@ -73,7 +77,19 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 		 * ##### explantation #####
 		 * line was splited and the splited Strings were placed to items[].
 		 */
-		
+		/*
+		 * protocol.
+		 *   items[0]:OG-LOADBLANCE-CHECKLOAD-TIME <-- this is just a tag.
+		 *   items[1]:checkLoad-start-time
+		 *   items[2]:checking-load-time  
+		 *   items[3]:moving-data-time 
+		 *   items[4]:updating-index-time
+		 */
+		if(line.startsWith(AnalyzerManager.getLogLoadTag())){
+			loadResule += makeLogLine(line);
+		}
+
+
 		/*
 		 * to calcurate total time for checkLoad() method.
 		 * and calcurate 
@@ -87,20 +103,6 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 		 * items[1]:check-load-start-time
 		 * items[2]:access-count
 		 * items[3]:data-size-count
-		 */
-		if(line.startsWith(AnalyzerManager.getLogLoadTag())){
-			loadResule += makeLogLine(line);
-		}
-
-
-		
-		/*
-		 * protocol.
-		 *   items[0]:OG-LOADBLANCE-CHECKLOAD-TIME <-- this is just a tag.
-		 *   items[1]:checkLoad-start-time
-		 *   items[2]:checking-load-time  
-		 *   items[3]:moving-data-time 
-		 *   items[4]:updating-index-time
 		 */
 		if(line.startsWith(AnalyzerManager.getLogCheckLoadTag())){
 			checkLoadResult += makeLogLine(line);
@@ -179,11 +181,11 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 			PrintWriter printWriter = new PrintWriter(new BufferedWriter(new FileWriter(newfile,true)));
 			printWriter.write(result);
 			
-			printWriter.write(checkLoadResult+ "checkLoadResultEnd"+ returnChar);
-			printWriter.write(loadResule+ "loadResultEnd"+ returnChar);
-			printWriter.write(putResult+ "putResultEnd"+ returnChar);
-			printWriter.write(getResult+ "getResultEnd"+ returnChar);
-			printWriter.write(rangeResult+ "rangeResultEnd"+ returnChar);
+			printWriter.write(checkLoadResult);
+			printWriter.write(loadResule);
+			printWriter.write(putResult);
+			printWriter.write(getResult);
+			printWriter.write(rangeResult);
 			
 			
 			

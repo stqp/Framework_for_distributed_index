@@ -22,7 +22,7 @@ for i in `cat ${NODE_LIST}`; do
 	echo scp ${SCRIPT_DIR}/*.sh ${NODE_PREFIX}${i}:${SCRIPT_DIR}/
 	scp ${SCRIPT_DIR}/*.sh ${NODE_PREFIX}${i}:${SCRIPT_DIR}/
 
-	ccho scp ${MAIN_DIR}/nodelist.txt ${NODE_PREFIX}${i}:${DEPLOY_DIR}/
+	echo scp ${MAIN_DIR}/nodelist.txt ${NODE_PREFIX}${i}:${DEPLOY_DIR}/
 	scp ${MAIN_DIR}/nodelist.txt ${NODE_PREFIX}${i}:${DEPLOY_DIR}/
 done
 

@@ -3,7 +3,8 @@
 source `dirname $0`/config.sh
 
 ${SCRIPT_DIR}/compile.sh
-sleep 10
+sleep 3
 ${SCRIPT_DIR}/deploy.sh
-sleep 10
-${SCRIPT_DIR}/run.sh 2
+sleep 3
+#number of computers   you want to run.
+${SCRIPT_DIR}/run.sh 4 #> scriptLog.txt 2>&1

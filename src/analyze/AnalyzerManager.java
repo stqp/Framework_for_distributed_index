@@ -16,6 +16,7 @@ public class AnalyzerManager extends AbstractAnalyzer{
 
 
 	private List<AbstractAnalyzer> analyzerList;
+	
 
 
 	/*
@@ -36,14 +37,14 @@ public class AnalyzerManager extends AbstractAnalyzer{
 	public static String getLogRangeTag(){
 		return "LOG-RANGE-TIME";
 	}
-	
-	
-	
+
+
+
 
 
 	public AnalyzerManager(){
 		this.analyzerList = new ArrayList<AbstractAnalyzer>();
-		this.analyzerList.add(new PutAnalyzer());
+		//this.analyzerList.add(new PutAnalyzer());
 		this.analyzerList.add(new LoadAnalyzer());
 	}
 
@@ -78,19 +79,8 @@ public class AnalyzerManager extends AbstractAnalyzer{
 	 * loopItemWriteResultの前処理として、アナライズファイルを格納するディレクトリを
 	 * 作成しておきます。
 	 */
-	private void beforeWriteResult(String analyzerResultDirPath,String fileName){
-		File dir = new File(analyzerResultDirPath);
-		File file = new File(analyzerResultDirPath+ "/" + fileName);
-		try{
-			if (file.exists()){
-				file.delete();
-			}
-			dir.mkdirs();
-			file.createNewFile();
-		}catch(IOException e){
-		    System.out.println("error : at dir or file of analyze result creation!");
-		}
-
+	protected void beforeWriteResult(String analyzerResultDirPath,String fileName){
+		createDir(analyzerResultDirPath);
 	}
 
 
@@ -99,24 +89,23 @@ public class AnalyzerManager extends AbstractAnalyzer{
 	 * 解析クラスのwriteResultメソッドをるーぷして呼びます。
 	 */
 	protected void loopItemWriteResult(String analyzerResultDirPath,String fileName){
-
-
 		beforeWriteResult(analyzerResultDirPath, fileName);
 
 		pri(analyzerResultDirPath+ "/" + fileName);
 		for(AbstractAnalyzer item: analyzerList){
-			item.writeResult(analyzerResultDirPath+ "/" + fileName);
+			item.beforeWriteResult(analyzerResultDirPath, fileName);
+			item.writeResult(analyzerResultDirPath, fileName);
 		}
 
 	}
 
 
 
-
-	protected void writeResult(String analyzerResultPath){}
+	protected void writeResult(String analyzerResultPath, String fileName) {}
 
 	@Override
 	public void clear() {}
+
 
 
 

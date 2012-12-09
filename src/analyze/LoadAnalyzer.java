@@ -13,27 +13,58 @@ import loadBalance.LoadChecker;
 public class LoadAnalyzer extends AbstractAnalyzer{
 
 	private static char tabChar = '\t';
-	
+
 	private static char returnChar = '\n';
 
-	
-	private String result="";
+	private static String dirName = "load";
 
-	private String checkLoadResult="checkLoadResult"+ returnChar;
+	private MyStringBuilder result= new MyStringBuilder("");//"";
 
-	private String loadResule="loadResult" + returnChar;
+	private MyStringBuilder checkLoadResult= new MyStringBuilder("checkLoadResult");//"checkLoadResult"+ returnChar;
 
-	private String putResult="putResult"+ returnChar;
+	private MyStringBuilder loadResule= new MyStringBuilder("loadResult");//"loadResult" + returnChar;
 
-	private String getResult="getResult"+ returnChar;
+	private MyStringBuilder putResult= new MyStringBuilder("putResult");//"putResult"+ returnChar;
 
-	private String rangeResult="rangeResult"+ returnChar;
+	private MyStringBuilder getResult= new MyStringBuilder("getResult");//"getResult"+ returnChar;
 
-
-
+	private MyStringBuilder rangeResult= new MyStringBuilder("rangeResult");//"rangeResult"+ returnChar;
 
 
-	public LoadAnalyzer(){}
+	ArrayList<MyStringBuilder> resultList = new ArrayList<MyStringBuilder>();
+
+
+	public LoadAnalyzer(){
+		resultList.add(this.result);
+		resultList.add(this.checkLoadResult);
+		resultList.add(this.loadResule);
+		resultList.add(this.putResult);
+		resultList.add(this.getResult);
+		resultList.add(this.rangeResult);
+
+	}
+
+	public class MyStringBuilder{
+		private StringBuilder sb = new StringBuilder();
+		private String name ;
+		public MyStringBuilder(String name) {
+			this.name = name;
+		}
+		public String getName(){
+			return this.name;
+		}
+		public MyStringBuilder append(String str){
+			sb.append(str);
+			return this;
+		}
+		public MyStringBuilder append(char c){
+			sb.append(c);
+			return this;
+		}
+		public String toString(){
+			return sb.toString();
+		}
+	}
 
 
 
@@ -48,7 +79,7 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 		if(line.startsWith("check dataLoad")){
 
 			List<String>data_numberString_every_dataNode = new ArrayList<String>();
-			result +="\n";
+			result.append(returnChar);
 			String[] items = splitLine(line);
 
 
@@ -58,9 +89,9 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 			}
 
 			// make result string.
-			result += "dataNumber every dataNode\t";
+			result.append("dataNumber every dataNode"+tabChar);
 			for(String numberString : data_numberString_every_dataNode){
-				result += numberString + "\t";
+				result.append(numberString + tabChar);
 			}
 
 		}
@@ -72,7 +103,7 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 
 
 
-		
+
 		/*
 		 * ##### explantation #####
 		 * line was splited and the splited Strings were placed to items[].
@@ -86,7 +117,7 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 		 *   items[4]:updating-index-time
 		 */
 		if(line.startsWith(AnalyzerManager.getLogLoadTag())){
-			loadResule += makeLogLine(line);
+			loadResule.append(makeLogLine(line));
 		}
 
 
@@ -105,7 +136,7 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 		 * items[3]:data-size-count
 		 */
 		if(line.startsWith(AnalyzerManager.getLogCheckLoadTag())){
-			checkLoadResult += makeLogLine(line);
+			checkLoadResult.append(makeLogLine(line));
 		}
 
 		/*
@@ -116,7 +147,7 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 		 * items[1]:one-put-process-time
 		 */
 		if(line.startsWith(AnalyzerManager.getLogPutTag())){
-			putResult += makeLogLine(line);
+			putResult.append(makeLogLine(line));
 		}
 
 		/*
@@ -127,9 +158,9 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 		 * items[1]:one-get-process-time
 		 */
 		if(line.startsWith(AnalyzerManager.getLogGetTag())){
-			getResult+= makeLogLine(line);
+			getResult.append(makeLogLine(line));
 		}
-		
+
 		/*
 		 * to calcurate total time for range query.
 		 * 
@@ -138,7 +169,7 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 		 * items[1]:one-range-process-time
 		 */
 		if(line.startsWith(AnalyzerManager.getLogRangeTag())){
-			rangeResult+= makeLogLine(line);
+			rangeResult.append(makeLogLine(line));
 		}
 	}
 
@@ -160,45 +191,48 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 	@Override
 	public void showResult() {
 		pri("Load");
-		pri(result);
-		
-		pri(checkLoadResult);
-		pri(loadResule);
-		pri(putResult);
-		pri(getResult);
-		pri(rangeResult);
+		pri(result.toString());
+
+		pri(checkLoadResult.toString());
+		pri(loadResule.toString());
+		pri(putResult.toString());
+		pri(getResult.toString());
+		pri(rangeResult.toString());
 	}
 
 
-
-
-
-
-	@Override
-	public void writeResult(String analyzerResultPath) {
-		File newfile = new File( analyzerResultPath);
-		try {
-			PrintWriter printWriter = new PrintWriter(new BufferedWriter(new FileWriter(newfile,true)));
-			printWriter.write(result);
-			
-			printWriter.write(checkLoadResult);
-			printWriter.write(loadResule);
-			printWriter.write(putResult);
-			printWriter.write(getResult);
-			printWriter.write(rangeResult);
-			
-			
-			
-			
-			//printWriter.print("dataNumber every dataNode\t");
-			//for(String numberString : data_numberString_every_dataNode){
-			//	printWriter.print(numberString + "\t");
-			//}
-			printWriter.close();
-		} catch (Exception e) {
-			e.printStackTrace();
+	/*
+	 * このクラス専用のディレクトリを作成する
+	 * (非 Javadoc)
+	 * @see analyze.AbstractAnalyzer#beforeWriteResult(java.lang.String, java.lang.String)
+	 */
+	protected void beforeWriteResult(String analyzerResultDirPath,String fileName){
+		for(MyStringBuilder msb : resultList){
+			createDir(analyzerResultDirPath+ "/"+ dirName+ "/"+ msb.getName());
 		}
+	}
 
+
+
+
+	@Override
+	public void writeResult(String analyzerResultDirPath, String fileName) {
+
+		File newfile= null;
+		PrintWriter printWriter= null;
+
+		for(MyStringBuilder msb : resultList){
+			String fileDir = analyzerResultDirPath+ "/"+ dirName+ "/"+ msb.getName()+ "/"+ fileName;
+			newfile = createFile(fileDir);
+			
+			try {
+				printWriter = new PrintWriter(new BufferedWriter(new FileWriter(newfile,true)));
+				printWriter.write(msb.toString());
+				printWriter.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 
@@ -206,8 +240,7 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 
 
 	@Override
-	public void clear() {
-	}
+	public void clear() {}
 
 
 

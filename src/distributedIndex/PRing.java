@@ -920,6 +920,47 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 		}
 	}
 
+	
+	private void updateIndex(DataNode[] dataNodesToBeRemoved,
+			InetSocketAddress target) {
+		priJap("インデックス更新フェーズ");
+		
+		for(DataNode dn : dataNodesToBeRemoved){
+			/*
+			 * 目的のデータノードに対して
+			 * 1.左右のデータノードからの参照と
+			 * 2.親から参照を取り除く
+			 */
+			//if(dn.getPrev() != null){ dn.getPrev().setNext(null);}//左からの参照削除
+			//if(dn.getNext() != null){ dn.getNext().setPrev(null);}//右からの参照削除
+			//親からの参照削除します
+			TreeNode parent = (TreeNode) dn.getParent();
+			
+			parent.removeDataNode(dn);
+			
+			
+			
+			priJap("START REMOVE CHILD FROM PARENT");
+			priJap("INFOMATION OF PARENT NODE OF TARGET DATANODE");
+			pri("CHILDREN SIZE IS");
+			pri(parent.getChildrenSize());
+			
+			priJap("DATA_NODE_INFO: START");
+			pri("DATA_NODE_INFO: TO_MESSAGE");
+			pri(dn.toMessage());
+			pri("DATA-NODE-MIN-ID:");
+			pri(dn.getMinID().toString());
+			priJap("DATA_NODE_INFO: END");
+			
+			
+			
+			
+			priJap("END REMOVE CHILD FROM PARENT");
+			
+			
+		}
+		
+	}
 
 	@Override
 	public String recieveAndUpdateDataForLoadMove(DataNode[] dataNodes,

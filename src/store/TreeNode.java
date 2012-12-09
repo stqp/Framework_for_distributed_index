@@ -1,15 +1,17 @@
 package store;
 
+import node.AddressNode;
 import node.DataNode;
 import node.Node;
 import util.ID;
 import util.LatchUtil;
 import util.MessageSender;
+import util.MyUtil;
 import util.NodeStatus;
 import util.Shell;
 
 
-public final class TreeNode implements Node {
+public final class TreeNode extends MyUtil implements Node {
 	private static final String NAME = "TreeNode";
 	public String getName() {return NAME;}
 
@@ -46,6 +48,233 @@ public final class TreeNode implements Node {
 	// 	this.status = LatchUtil.newLatch();
 	// }
 
+	
+	
+	
+	
+	
+	
+
+	/*
+	 * @author tokuda
+	 * add new code.
+	 * start.
+	 */
+	
+	public DataNode getFirstDataNode(){
+		for(int i=0; i< this.getChildrenSize(); i++){
+			if(this.children[i] instanceof DataNode){
+				return (DataNode) this.children[i];
+			}
+		}
+		return null;
+	}
+	
+	public int getDataSize(){
+		int count=0;
+		for(int i=0; i< this.getChildrenSize(); i++){
+			if(this.children[i] instanceof DataNode){
+				count+= ((DataNode)this.children[i]).size();
+			}
+		}
+		return count;
+	}
+	
+	
+	public int getNumberOfLeafNode(){
+		int count=0;
+		for(int i=0; i< this.getChildrenSize(); i++){
+			if(this.children[i] instanceof DataNode){
+				count++;
+			}
+		}
+		return count;
+	}
+	
+	public int getNumberOfInterNodes(){
+		int count = 0;
+		for(int i=0; i< this.getChildrenSize();i++){
+			if(this.children[i] instanceof TreeNode){
+				count++;
+			}
+		}
+		return count;
+	}
+	
+	
+	
+	/*
+	 * childrenに渡された配列の中身をコピーしていきます。
+	 * 単純にポインタを入れ替えるだけではありません。
+	 */
+	public boolean replaceChildren(Node[] childreToReplace){
+		if(childreToReplace.length > MAX_CHILDREN_NODES) return false;
+		for(int i=0; i< childreToReplace.length;i++){
+			children[i] = childreToReplace[i];
+		}
+		for(int i=childreToReplace.length; i< MAX_CHILDREN_NODES;i++){
+			children[i] = null;
+		}
+		return true;
+	}
+	
+	
+	
+	public void removeDataNode(DataNode dn){
+		Node[] newChildren = new Node[getChildrenSize()-1];//親の子供を新しい子供に置き換えます
+		for(int i=0,j=0;i < getChildrenSize();i++){
+			/*
+			 * 目的のデータノードはコピーしないでとばす。
+			 * ポインタで判別しようとしたらうまくいってなかったらしい。(parent.chidlren[i] == dn　のような感じ)
+			 * そこで担当IDが同じということで判別する。
+			 */
+			if(children[i].equals(dn)== true){
+				//do nothing
+			}else{
+				newChildren[j] = children[i]; //error : ArrayIndexOutOfBoundsException
+				j++;
+			}
+		}
+		//親から子への参照を取り除く
+		replaceChildren(newChildren);
+	}
+	
+	
+	
+	/*
+	 * クラス変数のchildrenを、 渡された配列dnsをchildrenに追加して作った新しい配列に置き換えます
+	 * ただしdnsには担当範囲が連続し整列された（担当ID的に）配列を渡してください。
+	 * 
+	 * データノードの追加場所（データノード的に左側OR右側）は勝手に判断します。
+	 * またB-link構造も追加にあわせて更新します。
+	 * 
+	 * このメソッドは負荷分散のためにデータノードを移動するので、そのために追加しました。
+	 * 
+	 * ##### caution #####
+	 * DataNodeを１つも持たない場合は使用しないでください。
+	 * DataNodeが１つはないとB-linkに追加したDataNodeを割り込ませることができません
+	 * 解決方法としては親に尋ねるという方法があります。
+	 */
+	public void addDataNodes(DataNode[] dns){
+		
+		//追加するデータノード間の参照を作る。親ノードへの参照を作る
+		for(int i=0;i< dns.length ; i++){
+			dns[i].setParent(this);
+			
+			if(dns.length == 1){break;}
+			if(i==0){
+				dns[i].setNext(dns[i+1]);
+			}else if(i== dns.length-1){
+				dns[i].setPrev(dns[i-1]);
+			}else{
+				dns[i].setNext(dns[i+1]);
+				dns[i].setPrev(dns[i-1]);
+			}
+		}
+		
+		DataNode leftMostDataNode = null;
+		DataNode rightMostDataNode = null;
+		boolean addToRightMost= false;
+		boolean isFirst = true;
+		
+		
+		for(int i=0; i< getChildrenSize();i++){
+			if(children[i] instanceof DataNode){
+				DataNode dnc = (DataNode)children[i];
+				/*
+				 * 子供の左はしに入れるか右端に入れるか判断します。
+				 */
+				/*
+				 * 左端に入れるとき
+				 * B-Link構造を維持するために
+				 * もともと一番左にあったデータノードのさらに前へのリンクがあれば
+				 * そのリンクを追加するデータノードの一番左へと更新する
+				 * また、一番左にあったデータノードの前へのリンクを追加するデータノードの一番右へ更新する。
+				 */
+				int which = "109".compareTo("19");
+				String t1 = dns[dns.length-1].getMaxID().toString();
+				String t2 = dnc.getMinID().toString();
+				int compare1 = dns[dns.length-1].getMaxID().compareTo(dnc.getMinID());
+				int compare2 = dns[dns.length-1].getMaxID().toString().compareTo(dnc.getMinID().toString());
+				boolean isSmall = dns[dns.length-1].getMaxID().compareTo(dnc.getMinID()) < 0;
+				if(isFirst == true){
+					if(dns[dns.length-1].getMaxID().compareTo(dnc.getMinID()) < 0){
+						if(dnc.getPrev() != null){
+							dnc.getPrev().setNext(dns[0]);
+							dns[0].setPrev(dnc.getPrev());
+						}
+						dns[dns.length-1].setNext(dnc);
+						dnc.setPrev(dns[dns.length-1]);
+						/*
+						 * childrenの中の一番右のデータノードを後で使いたいのでループを抜けないように
+						 * してください。
+						 * don't break here!
+						 */
+					}
+					//右端に入れるとき
+					//右端がわからないのでここでは何もしない
+					//ループを抜けてから処理します。
+					else{
+						addToRightMost = true;
+					}
+					isFirst = false;
+				}
+				
+				rightMostDataNode = dnc;
+			}
+		}
+		//右端に入れるとき
+		if(addToRightMost == true){
+			if(rightMostDataNode.getNext() != null){
+				rightMostDataNode.getNext().setPrev(dns[dns.length-1]);
+				dns[dns.length-1].setNext(rightMostDataNode.getNext());
+			}
+			dns[0].setPrev(rightMostDataNode);
+			rightMostDataNode.setNext(dns[0]);
+		}
+		
+		
+		
+		//childrenをdataNodeを追加した新しいもの(newChildren)に置き換えます。
+		Node[] newChildren = new Node[getChildrenSize()+dns.length];
+		
+		if(addToRightMost == false){
+			for(int i=0,j=0;i < newChildren.length;i++){
+				if(i < dns.length){
+					newChildren[i] = dns[i];
+				}else{
+					newChildren[i] = children[j];
+					j++;
+				}
+			}
+		}else{
+			for(int i=0,j=0;i < newChildren.length;i++){
+				if(i < getChildrenSize()){
+					newChildren[i] = children[i];
+				}else{
+					newChildren[i] = dns[j];
+					j++;
+				}
+			}
+		}
+		
+		replaceChildren(newChildren);
+	}
+	
+	
+	/*
+	 * @author tokuda
+	 * end
+	 * 
+	 */
+	
+	
+	
+	
+	
+	
+	
+	
 	public Node toInstance(String[] text, ID id) {return null;}
 	public String toMessage() {return null;}
 

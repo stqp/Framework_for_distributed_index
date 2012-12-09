@@ -325,11 +325,6 @@ public final class Shell extends MyUtil implements Runnable {
 			priJap("データは");
 			pri(loadmes.getLoadInfoTable().toJson());
 
-			if(this.loadChecker == null){
-				//今はヌルではなくなっていました。
-				priJap("ロードチェッカーはヌル");
-			}
-
 			if(this.distIndex.getMyAddressIPString().length() == 0 || loadmes.getLoadInfoTable() == null) return false;
 			this.loadChecker.setLoad(this.distIndex.getMyAddressIPString(),loadmes.getLoadInfoTable());
 

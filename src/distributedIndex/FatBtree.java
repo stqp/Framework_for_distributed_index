@@ -3154,9 +3154,9 @@ final class FBTNode extends MyUtil implements Node{
 	 * B-link構造も考慮して置き換えます。
 	 */
 	public void replaceDataNodeToAddressNode(DataNode dn, AddressNode an){
-		for(int i=0; i< parent.getChildrenSize();i++ ){
-			if(dn.equals(parent.children[i]) == true){
-				parent.children[i] = an;
+		for(int i=0; i< getChildrenSize();i++ ){
+			if(dn.equals(children[i]) == true){
+				children[i] = an;
 				/*
 				 * B-link構造が壊れないようにリンクを更新する
 				 * change the link of both (left or right) of data nodes.

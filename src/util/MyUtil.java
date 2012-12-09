@@ -4,6 +4,10 @@ public class MyUtil {
 	
 	
 	
+	/*
+	 * 単純にログに出力します。
+	 * どこから呼ばれたか知りたいと思うので少し処理を追加しています。
+	 */
 	public static void pri(String str){
 		StringBuilder sb = new StringBuilder() ;
 		sb.append(str);
@@ -19,6 +23,7 @@ public class MyUtil {
 		
 		System.out.println(sb.toString());
 	}
+	
 	
 	
 	public static Long getCurrentTime(){
@@ -40,6 +45,33 @@ public class MyUtil {
 	}
 	
 	
+	/*
+	 * 解析用のログを出力するときはこのメソッドを呼んでください。
+	 */
+	public static void log(Object o){
+		if(o instanceof String){
+			pri((String)o);
+		}
+		else if(o instanceof Integer){
+			pri((Integer) o);
+		}
+		else if(o instanceof Boolean){
+			pri((Boolean) o);
+		}
+	}
 	
 	
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

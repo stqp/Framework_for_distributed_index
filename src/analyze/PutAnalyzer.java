@@ -6,6 +6,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+/*
+ * テスト用のクラス
+ * 使っていませんので消してもいいです。
+ */
 public class PutAnalyzer extends AbstractAnalyzer{
 	private int totalProcTime_millis;
 
@@ -59,7 +63,7 @@ public class PutAnalyzer extends AbstractAnalyzer{
 
 
 	@Override
-	public void writeResult(String analyzerResultPath) {
+	public void writeResult(String analyzerResultPath, String fileName) {
 		File newfile = new File( analyzerResultPath);	
 		try {
 			PrintWriter printWriter = new PrintWriter(new BufferedWriter(new FileWriter(newfile,true)));
@@ -79,6 +83,16 @@ public class PutAnalyzer extends AbstractAnalyzer{
 		this.dbCount=0;
 		this.totalDbTime_millis=0;
 		this.totalProcTime_millis=0;
+	}
+
+
+
+
+	@Override
+	protected void beforeWriteResult(String analyzerResultDirPath,
+			String fileName) {
+		// TODO 自動生成されたメソッド・スタブ
+		
 	}
 
 

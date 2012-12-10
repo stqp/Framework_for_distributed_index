@@ -35,7 +35,7 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 
 
 	public LoadAnalyzer(){
-		resultList.add(this.result);
+		//resultList.add(this.result);
 		resultList.add(this.checkLoadResult);
 		resultList.add(this.loadResule);
 		resultList.add(this.putResult);

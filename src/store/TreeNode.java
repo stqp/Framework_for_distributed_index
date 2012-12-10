@@ -70,6 +70,32 @@ public final class TreeNode extends MyUtil implements Node {
 		return null;
 	}
 	
+	public DataNode getLastDataNode(){
+		DataNode lastDn = null;
+		for(int i=0; i< this.getChildrenSize(); i++){
+			if(this.children[i] instanceof DataNode){
+				lastDn = (DataNode)children[i];
+			}
+		}
+		return lastDn;
+	}
+	
+	/*
+	 * B-linkの構造を使ってデータノードをループしてデータサイズを取得します
+	 */
+	public int getDataSizeByB_link(){
+		int count = 0;
+		DataNode dn = getFirstDataNode();
+		if(dn == null)return 0;
+		
+		while(!dn.equals(getLastDataNode())){
+			count+= dn.size();
+			dn = dn.getNext();
+		}
+		count+= dn.size();
+		return count;
+	}
+	
 	public int getDataSize(){
 		int count=0;
 		for(int i=0; i< this.getChildrenSize(); i++){
@@ -128,8 +154,19 @@ public final class TreeNode extends MyUtil implements Node {
 			 * ポインタで判別しようとしたらうまくいってなかったらしい。(parent.chidlren[i] == dn　のような感じ)
 			 * そこで担当IDが同じということで判別する。
 			 */
-			if(children[i].equals(dn)== true){
-				//do nothing
+			if(dn.equals(children[i])== true){
+				//削除するデータノードの前後のB-linkを更新します。
+				if(dn.getPrev()!=null && dn.getNext()!=null){
+					dn.getPrev().setNext(dn.getNext());
+					dn.getNext().setPrev(dn.getPrev());
+				}else if(dn.getPrev()==null && dn.getNext()!=null){
+					dn.getNext().setPrev(null);
+				}else if(dn.getPrev()!=null && dn.getNext()==null){
+					dn.getPrev().setNext(null);
+				}else if(dn.getPrev()==null && dn.getNext()==null){
+					//do nothing.
+				}
+				
 			}else{
 				newChildren[j] = children[i]; //error : ArrayIndexOutOfBoundsException
 				j++;
@@ -172,7 +209,6 @@ public final class TreeNode extends MyUtil implements Node {
 			}
 		}
 		
-		DataNode leftMostDataNode = null;
 		DataNode rightMostDataNode = null;
 		boolean addToRightMost= false;
 		boolean isFirst = true;
@@ -191,12 +227,6 @@ public final class TreeNode extends MyUtil implements Node {
 				 * そのリンクを追加するデータノードの一番左へと更新する
 				 * また、一番左にあったデータノードの前へのリンクを追加するデータノードの一番右へ更新する。
 				 */
-				int which = "109".compareTo("19");
-				String t1 = dns[dns.length-1].getMaxID().toString();
-				String t2 = dnc.getMinID().toString();
-				int compare1 = dns[dns.length-1].getMaxID().compareTo(dnc.getMinID());
-				int compare2 = dns[dns.length-1].getMaxID().toString().compareTo(dnc.getMinID().toString());
-				boolean isSmall = dns[dns.length-1].getMaxID().compareTo(dnc.getMinID()) < 0;
 				if(isFirst == true){
 					if(dns[dns.length-1].getMaxID().compareTo(dnc.getMinID()) < 0){
 						if(dnc.getPrev() != null){

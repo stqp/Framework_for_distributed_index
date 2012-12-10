@@ -17,50 +17,73 @@ import util.MyUtil;
 public class TreeNodeTest extends MyUtil{
 	
 	
+	
 	@Test
 	public void testRemoveDataNode(){
 		TreeLocalStore store = new TreeLocalStore();
 		TreeNode treeNode = new TreeNode(store);
 		
-		DataNode d1; //= new DataNode(treeNode,null,null);
-		DataNode d2 = null;// = new DataNode(treeNode,d1,null)
-		DataNode d3 = null;
-		DataNode d4 = null;
 		
-		d1 = new DataNode(treeNode, null, d2);
+		DataNode d1 = new DataNode(treeNode, null, null);
 		addId(d1, "1");
 		addId(d1, "2");
 		addId(d1, "3");
-		d2 = new DataNode(treeNode, d1, d3);
+		DataNode d2 = new DataNode(treeNode, null, null);
 		addId(d2, "4");
 		addId(d2, "5");
 		addId(d2, "6");
-		d3 = new DataNode(treeNode, d2, d4);
+		DataNode d3 = new DataNode(treeNode, null, null);
 		addId(d3, "7");
 		addId(d3, "8");
 		addId(d3, "9");
-		d4 = new DataNode(treeNode, d3, null);
+		DataNode d4 = new DataNode(treeNode, null, null);
 		addId(d4, "10");
 		addId(d4, "11");
 		addId(d4, "12");
-
+		//B-link作成
+		d1.setNext(d2);
+		d2.setNext(d3);
+		d3.setNext(d4);
+		d4.setNext(null);
+		d1.setPrev(null);
+		d2.setPrev(d1);
+		d3.setPrev(d2);
+		d4.setPrev(d3);
+		AddressNode an1 = new AddressNode(null, null);
+		AddressNode an2 = new AddressNode(null, null);
 		
-		DataNode[] children = new DataNode[4];
+		Node[] children = new Node[6];
 		children[0] = d1;
-		children[1] = d2;
-		children[2] = d3;
-		children[3] = d4;
+		children[1] = an1;
+		children[2] = d2;
+		children[3] = d3;
+		children[4] = d4;
+		children[5] = an2;
+		
 		
 		
 		treeNode.replaceChildren(children);
+		assertEquals(6, treeNode.getChildrenSize());
+		assertEquals(12, treeNode.getDataSize());
+		assertEquals(12, treeNode.getDataSizeByB_link());
 		
-		pri(treeNode.getChildrenSize());
-		
-		pri(d1.getMinID().toString());
-		
+		treeNode.removeDataNode(d1);
+		assertEquals(5, treeNode.getChildrenSize());
+		assertEquals(9, treeNode.getDataSize());
+		assertEquals(9, treeNode.getDataSizeByB_link());
 		treeNode.removeDataNode(d2);
+		assertEquals(4, treeNode.getChildrenSize());
+		assertEquals(6, treeNode.getDataSize());
+		assertEquals(6, treeNode.getDataSizeByB_link());
+		treeNode.removeDataNode(d3);
+		assertEquals(3, treeNode.getChildrenSize());
+		assertEquals(3, treeNode.getDataSize());
+		assertEquals(3, treeNode.getDataSizeByB_link());
+		treeNode.removeDataNode(d4);
+		assertEquals(2, treeNode.getChildrenSize());
+		assertEquals(0, treeNode.getDataSize());
+		assertEquals(0, treeNode.getDataSizeByB_link());
 		
-		pri(treeNode.getChildrenSize());
 	}
 	
 	

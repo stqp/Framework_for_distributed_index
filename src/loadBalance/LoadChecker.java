@@ -9,6 +9,7 @@ import java.util.List;
 import util.ID;
 import util.MessageReceiver;
 import util.MessageSender;
+import util.MyUtil;
 import util.Shell;
 
 import distributedIndex.DistributedIndex;
@@ -28,7 +29,7 @@ import node.Node;
  * ・負荷移動が終わったら更新情報を手法に応じてだれに送るか決定し、更新情報を送る。
  */
 
-public class LoadChecker implements Runnable {
+public class LoadChecker extends MyUtil implements Runnable {
 
 
 	/*
@@ -113,7 +114,7 @@ public class LoadChecker implements Runnable {
 			try{
 				this.distributedIndex.checkLoad(this.loadInfoTable, this.receiver.getMessageSender());
 			}catch(Exception e){
-				System.out.println("ERROR at LoadChecker.class at run method :");
+				pri("ERROR at LoadChecker.class at run method :");
 				e.printStackTrace();
 			}
 

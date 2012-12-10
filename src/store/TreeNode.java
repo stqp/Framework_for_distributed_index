@@ -168,6 +168,10 @@ public final class TreeNode extends MyUtil implements Node {
 				}
 				
 			}else{
+				//データノードが見つからなかった場合
+				if(j == getChildrenSize()-1){
+					return ;
+				}
 				newChildren[j] = children[i]; //error : ArrayIndexOutOfBoundsException
 				j++;
 			}

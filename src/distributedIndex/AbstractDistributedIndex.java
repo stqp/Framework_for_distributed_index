@@ -126,9 +126,10 @@ public abstract class AbstractDistributedIndex extends MyUtil implements Distrib
 	 */
 	public boolean equalsAddress(InetSocketAddress addr1, InetSocketAddress addr2){
 		if(addr1 == null || addr2 == null)return false;
+		if(addr1.getAddress() == null || addr2.getAddress() == null){return false;}
 		
 		String adrStr1 = addr1.getAddress().toString();
-		String adrStr2 = addr2.toString();
+		String adrStr2 = addr2.getAddress().toString();
 		String TrimedAddr1 = trimAddressString(adrStr1);
 		String TrimedAddr2 = trimAddressString(adrStr2);
 		

@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
+import analyze.AnalyzerManager;
+
 import com.google.gson.Gson;
 
 import store.TreeNode;
@@ -1279,46 +1281,42 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 	 */
 	public void checkLoad(LoadInfoTable loadInfoTable, MessageSender sender){
 
+		// ##### 時間測定用変数 #####
+		long checkStartTime_msec = getCurrentTime();
+		Long moveStartTime_msec;
+		Long updateStartTime_msec;
+		Long checkEndTime_msec;
+		// ##### /時間測定用変数 #####
 
-		pri("TIME OF WHEN CHECKLOAD CALLED:"+System.currentTimeMillis());
 
 
-		//myAddressがnullの時はまだ初期化がされていませんので負荷集計する意味はありません。
-		pri("My address:" + this.getMyAddressIPString());
-		pri("getAckMachine:"+ this.getAckMachine());
-
-
-		try{
-			//TODO アドレスノードの位置を調べる
+		/*try{
+			//アドレスノードの位置を調べる
 			for(Node node : this.root.children){
 				//priJap("ルートの子供です。");
 				//pri("root child : "+node.toMessage());
-				/*if(node instanceof FBTNode){
+				if(node instanceof FBTNode){
 					for(Node cnode: ((FBTNode) node).children){
 						pri(cnode.toMessage());
 					}
-				}*/
+				}
 			}
 		}catch( Exception e){
 			e.printStackTrace();
 		}
-
-		pri("range");
 		//pri(this.root.range[0].toMessage());
 		//pri(this.root.range[1].toMessage());
-
 		try{
 			for(ID id : this.root.data){
 				pri(id.toMessage());
 			}
 		}catch(Exception e){
 
-		}
+		}*/
 
 
 
 		pri("##### 負荷集計フェーズ #####");
-
 		//もしまだ1つ前の計算機の負荷が登録されていなければそっちにデータ移動はできない
 		//1つ後の計算機に関しても同様。
 		//そのためのチェックをしているだけだが、長くなってしまった。
@@ -1341,50 +1339,73 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 		//DataNode leftMostDataNode = this.getFirstDataNode();
 		DataNode rightMostDataNode = this.getFirstDataNode();
 		int myLoad = 0;
+		int myDataSize = 0;
 
 
 
-		pri("====== 負荷を集計します ======");
+		pri("====== 負荷を集計 ======");
 		synchronized (this) {
 			DataNode dataNode = getFirstDataNode();
 			while(dataNode != null){
 				myLoad += dataNode.getLoad();
+				myDataSize += dataNode.size();
 				rightMostDataNode = dataNode;
 				dataNode = dataNode.getNext();
 			}
 		}
-		pri("====== 自分の負荷を更新 ======");
+		pri("====== /負荷を集計 ======");
+
+
+		pri("====== 自分の負荷更新と負荷平均値を再計算 ======");
 		loadInfoTable.setLoad(this.getMyAddressIPString(), myLoad);
-		pri("====== 負荷の平均値を再計算 =====");
+		loadInfoTable.setDataSize(this.getMyAddressIPString(), myDataSize);
 		loadInfoTable.reCalcAverage();
+		pri("====== /自分の負荷更新と負荷平均値を再計算 ======");
 
-
-		pri("LOAD_INFO_TABLE_TOJSON :"+loadInfoTable.toJson());
 
 		//データ更新された後に平均値を取得するという順番に注意！
 		int average = loadInfoTable.getAverage();
 		int threshold = (int) (average * errorRangeRate);
 
+
+
+		// ##### 計算機の状態をログに出力 #####
+		pri("LOAD_INFO_TABLE_TOJSON :"+loadInfoTable.toJson());
 		pri("getMyAddressIPString : " +this.getMyAddressIPString());
 		pri("getPrevMachineIP : " + this.getPrevMachineIPString());
 		pri("getNextMachineIP : "+ this.getNextMachineIPString());
-
 		pri("myLoad : "+ myLoad);
 		pri("prevLoad : " + prevLoad);
 		pri("nextLoad : " + nextLoad);
 		pri("average : " + loadInfoTable.getAverage());
 		pri("threshold : "+ threshold);
+		this.toLog();
+		int prevDataSize=0;
+		int nextDataSize=0;
+		try{
+			prevDataSize = loadInfoTable.getDataSizeList().get(this.getPrevMachineIPString());
+		}catch(Exception e){}
+		try{
+			nextDataSize = loadInfoTable.getDataSizeList().get(this.getNextMachineIPString());
+		}catch(Exception e){}
+		pri("myDataSize : "+ myDataSize);
+		pri("prevDataSize : " + prevDataSize);
+		pri("nextDataSize : " + nextDataSize);
+		// ##### /計算機の状態をログに出力 #####
 
-		//pri("root.toString : "+ this.root.toString());
-		pri("root.toLabel : "+ this.root.toLabel());
-		//pri("root.toMessage : "+ this.root.toMessage());
-		pri("root.children.toString : "+ this.root.children.toString());
-		pri("loadInfoTable : "+ loadInfoTable.toJson());
-		//pri("content:"+ (new LoadMessage(this.getMyAddressIPString(), loadInfoTable)).toJson());
+
+
+		//アクセス負荷とデータ容量をログに出力
+		log( AnalyzerManager.getLogLoadTag()
+				+" "+checkStartTime_msec
+				+" "+myLoad
+				+" "+myDataSize
+				+" "+threshold);
 
 
 
-		// ##### 負荷情報を隣へ転送するフェーズ #####
+
+		// ##### 負荷転送フェーズ  #####
 		try {
 			sender.setHeader("LOAD_INFO");
 			if( this.getPrevMachine() != null){
@@ -1398,32 +1419,48 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		// ##### /負荷転送フェーズ  #####
+
+
+
+
+		//負荷集計かつ負荷転送フェーズ終わりと負荷移動フェーズの始まり
+		moveStartTime_msec = getCurrentTime();
 
 
 
 
 		//##### 負荷移動フェーズ #####
-
-		priJap("負荷移動フェーズ");
 		/*
 		 * この場合は負荷分散が必要ない
 		 * １．自分の負荷がある閾値より小さい
 		 * ２．自分の負荷が両隣の負荷のどちらよりも小さい
 		 */
 		if(myLoad < threshold || (myLoad < prevLoad && myLoad < nextLoad) ){
+			//負荷集計が終わったらデータノードに蓄積したアクセス負荷の情報をリセットします。
+			resetLoadCounter();
+			moveStartTime_msec = getCurrentTime();
+			updateStartTime_msec = getCurrentTime();
+			checkEndTime_msec = getCurrentTime();
+			//負荷転送フェーズにかかった時間
+			log("LOG-LOADBLANCE-CHECKLOAD-TIME"
+					+" "+checkStartTime_msec
+					+" "+(moveStartTime_msec-checkStartTime_msec)
+					+" "+(updateStartTime_msec-moveStartTime_msec)
+					+" "+(checkEndTime_msec-updateStartTime_msec));
 			return ;
 		}
 
 
+		priJap("負荷分散のためにデータノードを移動します。");
 		ArrayList<DataNode> dataNodeToBeMoved = new ArrayList<DataNode>();
+		InetSocketAddress target = null;
 		int tempLoadCount = 0;
 		int tempDataCount = 0;
 
-		//前の計算機へデータを送る場合
+		//前と後のどちらにデータを移動するか決定する
 		if(myLoad > prevLoad && prevLoad != 0){
 			priJap("前の計算機へデータノードを転送します。");
-
-
 			/*
 			 * 次の場合は移動するデータノードの探索を終了し移動に移ります。
 			 * １．データノード移動あとの負荷が閾値より小さい
@@ -1440,17 +1477,12 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 				dataNodeToBeMoved.add(dataNode);
 				dataNode = dataNode.getNext();
 			}
-
 			if(dataNodeToBeMoved.size() > 0){
-				System.out.println("HERE_DATA_MOVE_OCCUR");
-				priJap("データノード移動メソッドを呼びます。");
-				moveData((DataNode[])dataNodeToBeMoved.toArray(new DataNode[0]),this.getNextMachine(), sender);
+				target = this.getPrevMachine();
 			}
-
-		}else if(myLoad > nextLoad && nextLoad != 0){
+		}
+		else if(myLoad > nextLoad && nextLoad != 0){
 			priJap("次の計算機へデータノードを転送します。");
-
-
 			DataNode dataNode = rightMostDataNode;
 			while( true  ){
 				if( 	( myLoad - (tempLoadCount + dataNode.getLoad()) ) < threshold
@@ -1462,11 +1494,172 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 				dataNodeToBeMoved.add(dataNode);
 				dataNode = dataNode.getPrev();
 			}
-
 			if(dataNodeToBeMoved.size() > 0){
-				priJap("データノード移動メソッドを呼びます。");
-				moveData((DataNode[])dataNodeToBeMoved.toArray(new DataNode[0]),this.getPrevMachine(), sender);
+				target = this.getNextMachine();
 			}
+		}
+
+		//転送するデータノードが決まったら、データノードに蓄積したアクセス負荷の情報をリセットします。
+		resetLoadCounter();
+		
+		
+		
+		//実際にデータ転送が行われるのはここ
+		moveData((DataNode[])dataNodeToBeMoved.toArray(new DataNode[0]),target , sender);
+		// ##### /負荷移動フェーズ #####
+
+
+
+		//負荷移動フェーズの終わりとインデックス更新フェーズの始まり
+		updateStartTime_msec = getCurrentTime();
+
+
+
+		// ##### インデックス更新フェーズ #####
+		updateIndex((DataNode[])dataNodeToBeMoved.toArray(new DataNode[0]), target);
+		// ##### インデックス更新フェーズ #####
+
+
+
+		checkEndTime_msec = getCurrentTime();
+		//負荷転送フェーズにかかった時間
+		log("LOG-LOADBLANCE-CHECKLOAD-TIME"
+				+" "+checkStartTime_msec
+				+" "+(moveStartTime_msec-checkStartTime_msec)
+				+" "+(updateStartTime_msec-moveStartTime_msec)
+				+" "+(checkEndTime_msec-updateStartTime_msec));
+
+	}
+	
+	
+
+	private void updateIndex(DataNode[] dataNodesToBeRemoved,
+			InetSocketAddress target) {
+		priJap("updateIndex関数が呼ばれました");
+		
+		
+		for(DataNode dn : dataNodesToBeRemoved){
+			FBTNode parent = (FBTNode) dn.getParent();
+			parent.replaceDataNodeToAddressNode(dn, new AddressNode(target, dn.toLabel()));
+
+			//データノードの場合
+			ArrayList<InetSocketAddress> listToSend = new ArrayList<InetSocketAddress>();
+			for(InetSocketAddress isa : parent.shareAddress){
+				listToSend.add(isa);
+			}
+			//データノードの場合終わり
+			
+			
+			//もし親がルートノードなら終了
+			if(parent.getNumberOfLeafNodes() > 0 || parent.equals(this.root)){
+				for(InetSocketAddress isa : listToSend){
+					//sendUpdateInfo(isa,dataNodesToBeRemoved);
+				}
+				return;
+			}
+
+
+			parent = parent.parent;
+			FBTNode child = parent;
+			
+			//インターノードとインターノード
+			//再帰的な処理に移ります
+			while(parent != null 
+					&& parent.getNumberOfInterOrLeafNodes()== 0 
+					&& !parent.equals(this.root) ){
+				for(InetSocketAddress isa : parent.shareAddress){
+					if(!listToSend.contains(isa)){
+						listToSend.add(isa);
+					}
+				}
+				parent.replaceFbtNodeToLink(child, target);
+				parent = parent.parent;
+				child = parent;
+			}
+			
+			//TODO
+			/*
+			 * 送るもの
+			 * ・minId
+			 * ・自分のアドレス　<-- 送った先でアドレスノードを突き止めるのに使えそう
+			 */
+			for(InetSocketAddress isa : listToSend){
+				//sendUpdateInfo();
+			}
+
+			
+			
+			/*
+			 * 以降は削除かなー
+			 * here,
+			 * if parent has no leaf node, replace FBTnode parent to address node.
+			 * and if the grand parent is not root node, calcurate recursively.
+			 * 
+			 * in short, check the grand parent has no inter-node(FBTNode) or not ,
+			 * and if then check the grand grand parent,,,,
+			 * 
+			 * ここでは
+			 * リーフノードとインターノード間での更新を行います。
+			 */
+			/*FBTNode grandParent = parent.parent;
+			FBTNode targetChild = parent;
+			ArrayList<InetSocketAddress> listToSendUpdateInfo = new ArrayList<InetSocketAddress>();
+			if(parent.getNumberOfLeafNodes() == 0){
+
+			 *　祖父の子からparentの位置を見つけて入れ替える
+			 *　ついでに更新共有している計算機を見つけておく
+				for(int i=0; i< grandParent.getChildrenSize(); i++){
+					Node child = grandParent.children[i];
+					if(grandParent.children[i] == parent){
+						grandParent.children[i] = new AddressNode(target, parent.toLabel());;
+					}
+					//更新情報を送る計算機を集めています。
+					if(child instanceof AddressNode){
+						AddressNode achild = (AddressNode) child;// <-- address node child
+						//まだ追加していないアドレスだけ追加
+						if(!listToSendUpdateInfo.contains(achild.getAddress())){
+							listToSendUpdateInfo.add(achild.getAddress());
+						}
+					}
+				}
+			}else {
+			}*/
+			/*
+			 * データノードとインターノード間の更新情報を送る
+			 * 
+			 * ここで階層ごとに更新情報を送るようにします。
+			 * なぜならまとめて更新情報を送ると面倒くさいからです
+			 */
+			//sendUpdateInfo(listToSendUpdateInfo);
+			/*listToSendUpdateInfo.clear();
+			parent = parent.parent;
+			targetChild = parent;
+			 * ここでは
+			 * インターノードとルート間の再帰的な更新を行います。
+			while(parent != this.root){
+			}
+			 */
+			/*
+			 * 目的のデータノードに対して
+			 * 1.左右のデータノードからの参照と
+			 * 2.親から参照を取り除く
+			 */
+			/*if(dn.getPrev() != null){ dn.getPrev().setNext(null);}//左からの参照削除
+			if(dn.getNext() != null){ dn.getNext().setPrev(null);}//右からの参照削除
+			//親からの参照削除します
+			TreeNode parent = (TreeNode) dn.getParent();
+			Node[] newChildren = new Node[parent.children.length-1];//親の子供を新しい子供に置き換えます
+			for(int i=0,j=0;i < parent.children.length;i++){
+				//目的のデータノードはコピーしないでとばす。
+				if(parent.children[i] == dn){
+					//do nothing
+				}else{
+					newChildren[j] = parent.children[i];
+					j++;
+				}
+			}
+			//親から子への参照を取り除く
+			parent.children = newChildren;*/
 		}
 	}
 
@@ -1474,9 +1667,8 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 
 
 	@Override
-	public void moveData(DataNode[] dataNodesToBeRemoved,
+	public boolean moveData(DataNode[] dataNodesToBeRemoved,
 			InetSocketAddress target, MessageSender sender) {
-
 		priJap("moveData関数が呼ばれました");
 		priJap("移動するデータノードの数は");
 		pri(dataNodesToBeRemoved.length );
@@ -1487,183 +1679,23 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 		priJap("移動する相手のアドレスは");
 		pri(target.getAddress().toString());
 
-
 		synchronized (this) {
-
 			// ##### データノード移動フェーズ ######
 			priJap("データノード移動フェーズ");
-
 			try {
 				sender.setHeader("LOAD_MOVE_DATA_NODES");
 				String responseMessage = sender.sendDataNodeAndReceive(dataNodesToBeRemoved, this.getMyAddress(), target);
 				priJap("データ移動終わりました。");
 				priJap("次のような返事を受け取りました");
 				pri(responseMessage);
-
-
-				priJap("インデックス更新フェーズ");
-
-				for(DataNode dn : dataNodesToBeRemoved){
-
-					FBTNode parent = (FBTNode) dn.getParent();
-
-					/*
-					 * 移動するデータノードはアドレスノードに置き換えてリンクを張っておきます。
-					 */
-					parent.replaceDataNodeToAddressNode(dn, new AddressNode(target, dn.toLabel()));
-
-
-					//TODO
-					/*
-					 * 送るもの
-					 * ・minId
-					 * ・自分のアドレス　<-- 送った先でアドレスノードを突き止めるのに使えそう
-					 */
-					//sendUpdateInfo();
-
-					//もし親がルートノードなら終了
-					if(parent.equals(this.root)){
-						return;
-					}
-
-
-					//データノードとインターノード
-					if(parent.getNumberOfLeafNodes() > 0){
-						return;
-					}
-
-					FBTNode child = null;
-					//インターノードとインターノード
-					//再帰的な処理に移ります
-					while( true ){
-
-						parent = parent.parent;
-						child = parent;
-						parent.replaceFbtNodeToAddressNode(child, new AddressNode(target, child.toLabel()));
-						
-						if(parent.getNumberOfInterNodes() > 0 || parent.equals(this.root)){
-							return;
-						}
-					}
-
-
-					
-					/*
-					 * 
-					 * 以降は削除かなー
-					 * 
-					 * here,
-					 * if parent has no leaf node, replace FBTnode parent to address node.
-					 * and if the grand parent is not root node, calcurate recursively.
-					 * 
-					 * in short, check the grand parent has no inter-node(FBTNode) or not ,
-					 * and if then check the grand grand parent,,,,
-					 * 
-					 * 
-					 * ここでは
-					 * リーフノードとインターノード間での更新を行います。
-					 * 
-					 */
-					/*FBTNode grandParent = parent.parent;
-					FBTNode targetChild = parent;
-					ArrayList<InetSocketAddress> listToSendUpdateInfo = new ArrayList<InetSocketAddress>();
-
-
-					if(parent.getNumberOfLeafNodes() == 0){
-
-
-						
-						 *　祖父の子からparentの位置を見つけて入れ替える
-						 *　ついでに更新共有している計算機を見つけておく
-						 
-						for(int i=0; i< grandParent.getChildrenSize(); i++){
-							Node child = grandParent.children[i];
-
-							if(grandParent.children[i] == parent){
-								grandParent.children[i] = new AddressNode(target, parent.toLabel());;
-							}
-
-							//更新情報を送る計算機を集めています。
-							if(child instanceof AddressNode){
-								AddressNode achild = (AddressNode) child;// <-- address node child
-								//まだ追加していないアドレスだけ追加
-								if(!listToSendUpdateInfo.contains(achild.getAddress())){
-									listToSendUpdateInfo.add(achild.getAddress());
-								}
-							}
-						}
-
-
-
-
-					}else {
-
-					}*/
-
-
-					/*
-					 * データノードとインターノード間の更新情報を送る
-					 * 
-					 * ここで階層ごとに更新情報を送るようにします。
-					 * なぜならまとめて更新情報を送ると面倒くさいからです
-					 */
-					//TODO
-					//sendUpdateInfo(listToSendUpdateInfo);
-					/*listToSendUpdateInfo.clear();
-
-					parent = parent.parent;
-					targetChild = parent;
-
-
-					
-					 * ここでは
-					 * インターノードとルート間の再帰的な更新を行います。
-					 
-					while(parent != this.root){
-					}
-*/
-
-
-
-					/*
-					 * 目的のデータノードに対して
-					 * 1.左右のデータノードからの参照と
-					 * 2.親から参照を取り除く
-					 */
-					/*if(dn.getPrev() != null){ dn.getPrev().setNext(null);}//左からの参照削除
-					if(dn.getNext() != null){ dn.getNext().setPrev(null);}//右からの参照削除
-					//親からの参照削除します
-					TreeNode parent = (TreeNode) dn.getParent();
-					Node[] newChildren = new Node[parent.children.length-1];//親の子供を新しい子供に置き換えます
-					for(int i=0,j=0;i < parent.children.length;i++){
-						//目的のデータノードはコピーしないでとばす。
-						if(parent.children[i] == dn){
-							//do nothing
-						}else{
-							newChildren[j] = parent.children[i];
-							j++;
-						}
-					}
-					//親から子への参照を取り除く
-					parent.children = newChildren;*/
-
-				}
-
-
-
-
-
-
-
-
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-
 		}
-
-
+		return false;
 	}
+
+
 
 	//TODO
 	private String parseTextAndGetMinIdString(String text){
@@ -1966,22 +1998,12 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 
 			}
 
-
-
-
-
-
-
-
-
 			//アイデア１
-
 			/*					//隣のデータノードから削除したいデータノードへのリンクを削除
 					DataNode nextDataNode = dataNode.getNext();
 					if(nextDataNode != null){
 						nextDataNode.setPrev(null);
 					}
-
 					//1.pのcへのリンクを削除する
 					//データノードの親はたぶんFBTNode
 					FBTNode parent = (FBTNode)dataNode.getParent();
@@ -1990,28 +2012,19 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 					Node[] childrenOfParentToReplace = new Node[parent.children.length-1];//parent.children.clone();
 					System.arraycopy( parent.children, 1,childrenOfParentToReplace, 0, parent.children.length-1);
 
-
-
 			 * TODO
 			 * まずアドレスノードの位置を調べてから
 			 * もしFBTノードに入っていたら子供の一番端はデータノードではなくアドレスノードのはずなので対処する
 			 * if(parent.children[parent.children.length-1] instanceof AddressNode){
 
 					}
-
-
-
 					parent.children = childrenOfParentToReplace;
-
-
 					FBTNode grandParent = parent.parent;
 					parent.range[1] = nextDataNode.getMaxID();
-
 					//親を再帰的にインデックス更新します。
 					while(true){
 						//祖父がいるときは繰り返し更新していかなくてはいけない
 						if(grandParent != null){
-
 							//親に子供がいるとき
 							if(parent.getChildrenSize() != 0){
 								if(parent.children[parent.children.length-1] instanceof DataNode){
@@ -2022,14 +2035,12 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 									FBTNode child = (FBTNode) parent.children[parent.children.length-1];
 									parent.range[1] = child.range[1];
 								}
-
 							}else{
 								Node[] childrenOfGrandParentToReplace =  new Node[grandParent.children.length-1];
 								System.arraycopy(grandParent.children, 1,childrenOfGrandParentToReplace, 0, grandParent.children.length-1);
 							}
 							parent = grandParent;
 							grandParent = grandParent.parent;
-
 						}
 						//祖父がいないのでここで再帰的な更新作業は終わり
 						else{
@@ -2041,8 +2052,6 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 
 								}
 								break;
-
-
 							}else{
 								//たぶんここには到達しないはず
 								priJap("ここに到達するのはおかしいと思う");
@@ -2050,25 +2059,17 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 						}
 					}
 
-
-
 					if(parent.getChildrenSize() == 0){
-
-
 						Node[] childrenOfGrandParentToReplace =  new Node[grandParent.children.length-1];
 						System.arraycopy(grandParent.children, 1,childrenOfGrandParentToReplace, 0, grandParent.children.length-1);
-
 						if(grandParent.children.length > 0){
 							//Node child = grandParent.children[grandParent.children.length-1].
 						}
-
 					}
 					// update parent range.
 					else{
 						parent.range[1] = nextDataNode.getMaxID();
 					}
-
-
 				}
 			 */
 			//when toLeft==false
@@ -2077,20 +2078,9 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 				while(dataNode.getNext() != null){
 					dataNode = dataNode.getNext();
 				}
-
-
 			}*/
-
-
-
-
-
-
-
 		}
 		priJap("データ移動のための分散インデックスのロック解除");
-
-
 	}
 
 	//public void sendUpdateInfoForDataNodeMove(updateInfoForLoadMoveMessage upInfo);
@@ -2128,46 +2118,25 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 	 *
 	 */
 	public DataNode[] moveLeftMostDataNodes(DataNode[] dataNodesToBeRemoved, InetSocketAddress address, MessageSender sender){
-
 		System.out.println("DEBUG_moveLeftMostDataNodes");
-
-
-
 		DataNode dataNode = this.leftmost;
-
-
 		System.out.println(dataNodesToBeRemoved[0].toString());
 		System.out.println(  ((FBTNode)dataNode.getParent()).children[0].toString()  );
-
-
 		try {
 			sender.send(dataNodesToBeRemoved.toString(), address);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
-
 		for(int i=0; i< dataNodesToBeRemoved.length;i++){
-
-
-
 			//i think dataNode's parent must be FBTNode in FatBtree!!
 			if(dataNode.getParent() instanceof FBTNode){
-
-
-
 				FBTNode parent = (FBTNode)dataNode.getParent();
-
-
 				Node[] temp = parent.children.clone();
 				// parent get child in which dataNode removed.
 				System.arraycopy(temp, 1, parent.children, 0, parent.getChildrenSize()-1);
 				dataNode = dataNode.getNext();
 			}
 		}
-
-
-
 		/*while(dataNode != null){
 			synchronized (dataNode.getParent()) {
 				for(int i=0;i<dataNodes.length;i++){
@@ -3119,6 +3088,17 @@ final class FBTNode extends MyUtil implements Node{
 	}
 
 
+	public int getNumberOfInterOrLeafNodes(){
+		int count=0;
+		for(int i=0; i< this.getChildrenSize(); i++){
+			if(this.children[i] instanceof DataNode
+					|| this.children[i] instanceof FBTNode){
+				count++;
+			}
+		}
+		return count;
+	}
+	
 	/*
 	 * 子供のノードのうちで中間ノードの数を返します。
 	 * 実装的にはFBTNodeのchildrenに入っているFBTNodeの数を返します。
@@ -3134,15 +3114,15 @@ final class FBTNode extends MyUtil implements Node{
 	}
 
 
-	
+
 	/*
 	 * もしこのFBTノードが渡されたfnと”等しい”ものを所持していたら
 	 * 渡されたアドレスノードと置き換えます。
 	 */
-	public void replaceFbtNodeToAddressNode(FBTNode fn, AddressNode an){
+	public void replaceFbtNodeToLink(FBTNode fn, InetSocketAddress linkTo){
 		for(int i=0; i< parent.getChildrenSize();i++ ){
-				if(fn.equals(parent.children[i]) == true){
-					parent.children[i] = an;
+			if(fn.equals(parent.children[i]) == true){
+				parent.children[i] = new AddressNode(linkTo, fn.toLabel());
 			}
 		}
 	}

@@ -2,6 +2,8 @@ package node;
 
 import static org.junit.Assert.*;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 
 import javax.xml.crypto.Data;
@@ -16,6 +18,33 @@ import util.MyUtil;
 
 public class TreeNodeTest extends MyUtil{
 	
+	@Test
+	public void testInetSocketComparison(){
+		
+		
+		InetSocketAddress i1 = new InetSocketAddress("edn2", 20);
+		InetSocketAddress i2 = new InetSocketAddress("edn2", 20);
+		assertEquals(true, i1.equals(i2));
+	}
+	
+	public boolean equalsAddress(InetSocketAddress addr1, InetSocketAddress addr2){
+		if(addr1 == null || addr2 == null)return false;
+		
+		
+		String adrStr1 = addr1.getAddress().toString();
+		String adrStr2 = addr2.toString();
+		String TrimedAddr1 = trimAddressString(adrStr1);
+		String TrimedAddr2 = trimAddressString(adrStr2);
+		
+		return TrimedAddr1.equals(TrimedAddr2);
+	}
+
+
+	
+	public String trimAddressString(String str){
+		return str.indexOf('/') > 0? str.substring(str.indexOf('/')): str;
+	}
+
 	
 	
 	@Test

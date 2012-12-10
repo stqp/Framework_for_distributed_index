@@ -807,7 +807,7 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 	 * for load balance
 	 */
 	@Override
-	public void moveData(DataNode[] dataNodesToBeRemoved,
+	public boolean moveData(DataNode[] dataNodesToBeRemoved,
 			InetSocketAddress target, MessageSender sender) {
 
 		priJap("moveData関数が呼ばれました");
@@ -918,6 +918,7 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 			}
 
 		}
+		return false;
 	}
 
 	

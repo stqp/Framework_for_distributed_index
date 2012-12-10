@@ -299,7 +299,7 @@ public class SkipGraph extends AbstractDistributedIndex implements DistributedIn
 			SkipGraphNode current = start;
 			InetSocketAddress lastAddr = null;
 			ID lastId = null;
-			
+
 			while (current != null) {
 				InetSocketAddress addr = current.neighborL.getAddress();
 				if (addr == null) {
@@ -334,9 +334,9 @@ public class SkipGraph extends AbstractDistributedIndex implements DistributedIn
 					return (neighbor.getAddress() != null) ? neighbor : this.interNodes[i - 1].neighborL;
 				}
 			}
-			
-			
-			
+
+
+
 			if (interNodes[0].neighborL.getAddress() == null) {
 				return this.store.searchKey(key);
 			}
@@ -661,9 +661,9 @@ public class SkipGraph extends AbstractDistributedIndex implements DistributedIn
 		Long updateStartTime_msec;
 		Long checkEndTime_msec;
 		// ##### /時間測定用変数 #####
-		
-		
-		
+
+
+
 		pri("##### 負荷集計フェーズ #####");
 		int prevLoad = 0;
 		int nextLoad = 0;
@@ -702,22 +702,22 @@ public class SkipGraph extends AbstractDistributedIndex implements DistributedIn
 			}
 		}
 		pri("====== /負荷を集計 ======");
-		
-		
+
+
 		pri("====== 自分の負荷更新と負荷平均値を再計算 ======");
 		loadInfoTable.setLoad(this.getMyAddressIPString(), myLoad);
 		loadInfoTable.setDataSize(this.getMyAddressIPString(), myDataSize);
 		loadInfoTable.reCalcAverage();
 		pri("====== /自分の負荷更新と負荷平均値を再計算 ======");
 
-		
+
 		//データ更新された後に平均値を取得するという順番に注意！
 		int average = loadInfoTable.getAverage();
 		int threshold = (int) (average * errorRangeRate);
-		
-		
-		
-		
+		pri("##### /負荷集計フェーズ #####");
+
+
+
 		// ##### 計算機の状態をログに出力 #####
 		pri("LOAD_INFO_TABLE_TOJSON :"+loadInfoTable.toJson());
 		pri("My address:" + this.getMyAddressIPString());
@@ -739,26 +739,23 @@ public class SkipGraph extends AbstractDistributedIndex implements DistributedIn
 		pri("prevDataSize : " + prevDataSize);
 		pri("nextDataSize : " + nextDataSize);
 		// ##### /計算機の状態をログに出力 #####
-		
-		
-		
-		
-		
+
+
+
+
+
 		//アクセス負荷とデータ容量をログに出力
 		log( AnalyzerManager.getLogLoadTag()
 				+" "+checkStartTime_msec
 				+" "+myLoad
-				+" "+myDataSize);
+				+" "+myDataSize
+				+" "+threshold);
 
 
-		
-		
-		// ##### 負荷転送フェーズ  #####
+
+
+		pri(" ##### 負荷転送フェーズ  ##### ");
 		try {
-			pri("getMyAddressIPString : " +this.getMyAddressIPString());
-			pri("loadInfoTable : "+ loadInfoTable.toJson());
-
-
 			sender.setHeader("LOAD_INFO");
 			if( this.getPrevMachine() != null){
 				pri("====== 左隣へ負荷情報を回します =====");
@@ -768,26 +765,26 @@ public class SkipGraph extends AbstractDistributedIndex implements DistributedIn
 				pri("====== 右隣へ負荷情報を回します =====");
 				sender.send((new LoadMessage(this.getMyAddressIPString(), loadInfoTable)).toJson(), this.getNextMachine());
 			}
-
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		// ##### /負荷転送フェーズ  #####
-		
+		pri("##### /負荷転送フェーズ  #####");
 
-		
+
+
 		//負荷集計かつ負荷転送フェーズ終わりと負荷移動フェーズの始まり
 		moveStartTime_msec = getCurrentTime();
-		
-		
-		
-		// ##### 負荷移動フェーズ #####
+
+
+
+		pri(" ##### 負荷移動フェーズ #####");
 		/*
 		 * 以下の場合は負荷分散が必要ない
 		 * １．自分の負荷がある閾値より小さい
 		 * ２．自分の負荷が両隣の負荷のどちらよりも小さい
 		 */
 		if(myLoad <= threshold || (myLoad < prevLoad && myLoad < nextLoad) ){
+			pri(" ##### /負荷移動フェーズ #####");
 			//負荷集計が終わったらデータノードに蓄積したアクセス負荷の情報をリセットします。
 			resetLoadCounter();
 			moveStartTime_msec = getCurrentTime();
@@ -807,65 +804,71 @@ public class SkipGraph extends AbstractDistributedIndex implements DistributedIn
 		InetSocketAddress target = null;
 		int tempLoadCount = 0;
 		int tempDataCount = 0;
-		
-		//前と後のどちらにデータを移動するか決定する
-		if(myLoad > prevLoad && prevLoad != 0){
-			priJap("前の計算機へデータを送ります");
-			/*
-			 * 次の場合は移動するデータノードの探索を終了し移動に移ります。
-			 * １．データノード移動あとの負荷が閾値より小さい
-			 * ２．移動可能なデータ数（データ数＝データノードに格納されているID数）を超えた
-			 */
-			DataNode dataNode = this.getFirstDataNode();
-			 while( true  ){
-				if(		(myLoad - (tempLoadCount + dataNode.getLoad())) <threshold
-						|| maxDataSizeCanBeMoved < (tempDataCount + dataNode.size()) ){
-					break;
+
+		synchronized (this) {
+
+			//前と後のどちらにデータを移動するか決定する
+			if(myLoad > prevLoad && prevLoad != 0){
+				priJap("前の計算機へデータを送ります");
+				/*
+				 * 次の場合は移動するデータノードの探索を終了し移動に移ります。
+				 * １．データノード移動あとの負荷が閾値より小さい
+				 * ２．移動可能なデータ数（データ数＝データノードに格納されているID数）を超えた
+				 */
+				DataNode dataNode = this.getFirstDataNode();
+				while( true  ){
+					if(		(myLoad - (tempLoadCount + dataNode.getLoad())) <= threshold
+							|| maxDataSizeCanBeMoved < (tempDataCount + dataNode.size()) ){
+						break;
+					}
+					tempDataCount += dataNode.size();
+					tempLoadCount += dataNode.getLoad();
+					dataNodeToBeMoved.add(dataNode);
+					dataNode = dataNode.getNext();
 				}
-				tempDataCount += dataNode.size();
-				tempLoadCount += dataNode.getLoad();
-				dataNodeToBeMoved.add(dataNode);
-				dataNode = dataNode.getNext();
-			}
-			if(dataNodeToBeMoved.size() > 0){
-				System.out.println("HERE_DATA_MOVE_OCCUR");
-				target = this.getPrevMachine();
-			}
-		}
-		else if(myLoad > nextLoad && nextLoad != 0){
-			priJap("次の計算機にデータを送ります");
-			DataNode dataNode = rightMostDataNode;
-			while( true  ){
-				if( ( myLoad - (tempLoadCount + dataNode.getLoad()) ) < threshold
-						|| maxDataSizeCanBeMoved < (tempDataCount + dataNode.size())){
-					break;
+				if(dataNodeToBeMoved.size() > 0){
+					target = this.getPrevMachine();
 				}
-				tempDataCount += dataNode.size();
-				tempLoadCount += dataNode.getLoad();
-				dataNodeToBeMoved.add(dataNode);
-				dataNode = dataNode.getPrev();
 			}
-			if(dataNodeToBeMoved.size() > 0){
-				target = this.getNextMachine();
+			else if(myLoad > nextLoad && nextLoad != 0){
+				priJap("次の計算機にデータを送ります");
+				DataNode dataNode = rightMostDataNode;
+				while( true  ){
+					if( ( myLoad - (tempLoadCount + dataNode.getLoad()) ) <= threshold
+							|| maxDataSizeCanBeMoved < (tempDataCount + dataNode.size())){
+						break;
+					}
+					tempDataCount += dataNode.size();
+					tempLoadCount += dataNode.getLoad();
+					dataNodeToBeMoved.add(dataNode);
+					dataNode = dataNode.getPrev();
+				}
+				if(dataNodeToBeMoved.size() > 0){
+					target = this.getNextMachine();
+				}
 			}
+
+			
+			//転送するデータノードが決まったら、データノードに蓄積したアクセス負荷の情報をリセットします。
+			//でないと、アクセス数がのこったまま転送されます。
+			resetLoadCounter();
+			
+			
+			
+			//実際にデータ転送が行われるのはここ
+			moveData((DataNode[])dataNodeToBeMoved.toArray(new DataNode[0]),target , sender);
+			pri(" ##### /負荷移動フェーズ #####");
+
+
+			//負荷移動フェーズの終わりとインデックス更新フェーズの始まり
+			updateStartTime_msec = getCurrentTime();
+
+			pri(" ##### インデックス更新フェーズ ##### ");
+			updateIndex((DataNode[])dataNodeToBeMoved.toArray(new DataNode[0]), target);
+			pri(" ##### /インデックス更新フェーズ ##### ");
 		}
-		
-		//実際にデータ転送が行われるのはここ
-		moveData((DataNode[])dataNodeToBeMoved.toArray(new DataNode[0]),target , sender);
-		// ##### /負荷移動フェーズ #####
-		
-		
-		//負荷移動フェーズの終わりとインデックス更新フェーズの始まり
-		updateStartTime_msec = getCurrentTime();
-		
-		
-		// ##### インデックス更新フェーズ #####
-		updateIndex((DataNode[])dataNodeToBeMoved.toArray(new DataNode[0]), target);
-		// ##### インデックス更新フェーズ #####
-		
-		
-		//負荷集計が終わったらデータノードに蓄積したアクセス負荷の情報をリセットします。
-		resetLoadCounter();
+
+
 		checkEndTime_msec = getCurrentTime();
 		//負荷転送フェーズにかかった時間
 		log("LOG-LOADBLANCE-CHECKLOAD-TIME"
@@ -874,10 +877,11 @@ public class SkipGraph extends AbstractDistributedIndex implements DistributedIn
 				+" "+(updateStartTime_msec-moveStartTime_msec)
 				+" "+(checkEndTime_msec-updateStartTime_msec));
 	}
+
 	
 
 	@Override
-	public void moveData(DataNode[] dataNodesToBeRemoved,
+	public boolean moveData(DataNode[] dataNodesToBeRemoved,
 			InetSocketAddress target, MessageSender sender) {
 		priJap("moveData関数が呼ばれました");
 		priJap("移動するデータノードの数は");
@@ -886,9 +890,9 @@ public class SkipGraph extends AbstractDistributedIndex implements DistributedIn
 		for(DataNode d: dataNodesToBeRemoved){
 			pri(d.size());
 		}
-		priJap("移動する相手のアドレスは");
-		pri(target.getAddress().toString());
-		
+		//priJap("移動する相手のアドレスは");
+		//pri(target.getAddress().toString());
+
 		synchronized (this) {
 			priJap("データノード移動フェーズ");
 			try {
@@ -898,17 +902,48 @@ public class SkipGraph extends AbstractDistributedIndex implements DistributedIn
 				priJap("データ移動終わりました。");
 				priJap("次のような返事を受け取りました");
 				pri(responseMessage);
+				if(responseMessage.equals("OK")){
+					return true;
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
+		return false;
 	}
 
-	
-	
+
+
 	private void updateIndex(DataNode[] dataNodesToBeRemoved,
 			InetSocketAddress target) {
 		priJap("METHOD : UPDATEINDEX");
+
+		pri("before total data size:");
+		pri(getTotalDataSizeByB_link());
+		
+		/*
+		 * 送り手が左側に送る時は自分の担当IDを更新する
+		 * 右側に送る時は何もしない。
+		 */
+		if(this.getPrevMachine().equals(target)){
+			pri("this.getPrevMachine().equals(target) is true");
+		}
+		if(dataNodesToBeRemoved[0].equals(this.getFirstDataNode())){
+			pri("dataNodesToBeRemoved[0].equals(this.getFirstDataNode())");
+		}
+		if(equalsAddress(target, this.getPrevMachine())){
+			pri("equalsAddress(target, this.getPrevMachine())");
+		}
+		if(this.getPrevMachine().equals(target) 
+				|| dataNodesToBeRemoved[0].equals(this.getFirstDataNode()) 
+				|| equalsAddress(target, this.getPrevMachine())){
+			pri("before responsible range minid:");
+			pri(this.id.toString());
+			((TreeLocalStore)this.store).setLeftmost(dataNodesToBeRemoved[dataNodesToBeRemoved.length-1].getNext());
+			this.id = this.getFirstDataNode().getMinID();
+			pri("before responsible range minid:");
+			pri(this.id.toString());
+		}
 		
 		for(DataNode dn : dataNodesToBeRemoved){
 			/*
@@ -920,31 +955,38 @@ public class SkipGraph extends AbstractDistributedIndex implements DistributedIn
 			//if(dn.getNext() != null){ dn.getNext().setPrev(null);}//右からの参照削除
 			//親からの参照削除します
 			TreeNode parent = (TreeNode) dn.getParent();
-			
-			
+
+
 			pri("before parent CHILDREN SIZE IS");
 			pri(parent.getChildrenSize());
-			
+
 			parent.removeDataNode(dn);
-			
+
 			pri("after parent CHILDREN SIZE IS");
 			pri(parent.getChildrenSize());
-			
+
 			pri("data node size:");
 			pri(dn.size());
-			
-			
 		}
-		/*
-		 * 送り手が左側に送る時は自分の担当IDを更新する
-		 * 右側に送る時は何もしない。
-		 */
-		if(equalsAddress(target, this.getPrevMachine())){//target.toString().equals(this.getPrevMachine().toString())){
-			this.id = this.getFirstDataNode().getMinID();
-		}
+		pri("after total data size:");
+		pri(getTotalDataSizeByB_link());
+		
+		
 		priJap("/METHOD : UPDATEINDEX");
 	}
 
+	
+	private int getTotalDataSizeByB_link(){
+		synchronized (this) {
+			int dataSize =0;
+			DataNode dataNode = getFirstDataNode();
+			while(dataNode != null){
+				dataSize += dataNode.size();
+				dataNode = dataNode.getNext();
+			}
+			return dataSize ;
+		}
+	}
 
 	/*
 	 * TODO
@@ -959,7 +1001,7 @@ public class SkipGraph extends AbstractDistributedIndex implements DistributedIn
 	@Override
 	public String recieveAndUpdateDataForLoadMove(DataNode[] dataNodes,
 			InetSocketAddress senderAddress) {
-		
+
 		priJap("METHOD : recieveAndUpdateDataForLoadMove関数が呼ばれました");
 		priJap("受け取ったデータノードの数は");
 		pri(dataNodes.length);
@@ -969,32 +1011,32 @@ public class SkipGraph extends AbstractDistributedIndex implements DistributedIn
 		}
 		priJap("データの送り主のアドレスは");
 		pri(senderAddress.getAddress().toString());
-		
+
 		synchronized (this) {
 			priJap("インデックス更新開始");
 			if(this.getPrevMachine() !=null && this.getPrevMachine().toString().equals(senderAddress.toString()) ){
 				priJap("左からデータノードを受け取りました");
-				
+
 				TreeLocalStore store = ((TreeLocalStore)this.store);
 				TreeNode parent = (TreeNode)store.getFirstDataNode().getParent();
-				
+
 				parent.addDataNodes(dataNodes);
-				
+
 				//インデックス手法からの参照を作る
 				store.setFirstDataNode(dataNodes[0]);
-				
+
 				/*
 				 * 受け手が左側からデータを受けとった時は
 				 * 自分の担当範囲を更新する
 				 */
 				this.id = this.getFirstDataNode().getMinID();
-				
+
 			}else if(this.getNextMachine() != null && this.getNextMachine().toString().equals(senderAddress.toString())){
 				priJap("右からデータノードを受け取りました");
-				
+
 				TreeLocalStore store = ((TreeLocalStore)this.store);
 				TreeNode parent = (TreeNode)store.getFirstDataNode().getParent();
-				
+
 				DataNode child = store.getFirstDataNode();
 				while( true ){
 					child = child.getNext();
@@ -1004,8 +1046,8 @@ public class SkipGraph extends AbstractDistributedIndex implements DistributedIn
 				parent.addDataNodes(dataNodes);				
 			}
 		}
-		
-		
+
+
 		pri("テスト用に「OK」を返します");
 		return "OK";
 	}

@@ -79,8 +79,8 @@ class FakeFatBtree extends FatBtree{
 	}
 	
 	@Override
-	public void moveData(DataNode[] dataNodesToBeRemoved,
+	public boolean moveData(DataNode[] dataNodesToBeRemoved,
 			InetSocketAddress target, MessageSender sender){
-		
+		return false;
 	}
 }

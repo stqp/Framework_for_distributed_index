@@ -240,7 +240,7 @@ public interface DistributedIndex {
      * の操作を行います。
      */
     public void checkLoad(LoadInfoTable loadInfoTable, MessageSender sender);
-    void moveData(DataNode[] dataNodesToBeRemoved,InetSocketAddress target, MessageSender sender );
+    boolean moveData(DataNode[] dataNodesToBeRemoved,InetSocketAddress target, MessageSender sender );
 
 
 

@@ -9,7 +9,6 @@ import java.net.InetSocketAddress;
 
 import java.sql.PreparedStatement;
 
-import analyze.AnalyzerManager;
 
 import util.ID;
 import util.MessageReceiver;
@@ -19,6 +18,7 @@ import util.ShellContext;
 
 import distributedIndex.DistributedIndex;
 
+import log_analyze.AnalyzerManager;
 import main.Main;
 import node.AddressNode;
 import node.DataNode;

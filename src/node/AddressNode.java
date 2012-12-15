@@ -17,6 +17,15 @@ public class AddressNode implements Node {
 
     private InetSocketAddress addr;
     
+    private Node parent;
+    
+    public Node getParent(){
+    	return this.parent;
+    }
+    public void getParent(Node parent){
+    	this.parent = parent;
+    }
+    
     /*
      * textの使い方は手法によって異なります。
      * textにはあるIDを文字列にしたものだったり、

@@ -1,4 +1,4 @@
-package analyze;
+package log_analyze;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -21,6 +21,7 @@ public class AnalyzerManager extends AbstractAnalyzer{
 
 	/*
 	 * use this tags for log.
+	 * とりあえずタグ情報はすべてこのクラスに格納
 	 */
 	public static String getLogCheckLoadTag(){
 		return "LOG-LOADBLANCE-CHECKLOAD-TIME";
@@ -37,6 +38,9 @@ public class AnalyzerManager extends AbstractAnalyzer{
 	public static String getLogRangeTag(){
 		return "LOG-RANGE-TIME";
 	}
+	public static String getPurePutCountTag()	{
+		return "LOG-GET-QUERY-ONCE";
+	}
 
 
 
@@ -44,8 +48,8 @@ public class AnalyzerManager extends AbstractAnalyzer{
 
 	public AnalyzerManager(){
 		this.analyzerList = new ArrayList<AbstractAnalyzer>();
-		//this.analyzerList.add(new PutAnalyzer());
 		this.analyzerList.add(new LoadAnalyzer());
+		this.analyzerList.add(new GetAnalyzer());
 	}
 
 
@@ -79,7 +83,7 @@ public class AnalyzerManager extends AbstractAnalyzer{
 	 * loopItemWriteResultの前処理として、アナライズファイルを格納するディレクトリを
 	 * 作成しておきます。
 	 */
-	protected void beforeWriteResult(String analyzerResultDirPath,String fileName){
+	public void beforeWriteResult(String analyzerResultDirPath,String fileName){
 		createDir(analyzerResultDirPath);
 	}
 
@@ -101,7 +105,7 @@ public class AnalyzerManager extends AbstractAnalyzer{
 
 
 
-	protected void writeResult(String analyzerResultPath, String fileName) {}
+	public void writeResult(String analyzerResultPath, String fileName) {}
 
 	@Override
 	public void clear() {}

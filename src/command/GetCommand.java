@@ -10,7 +10,6 @@ import java.net.InetSocketAddress;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
-import analyze.AnalyzerManager;
 
 import util.ID;
 import util.MessageReceiver;
@@ -20,6 +19,7 @@ import util.ShellContext;
 
 import distributedIndex.DistributedIndex;
 
+import log_analyze.AnalyzerManager;
 import main.Main;
 import node.AddressNode;
 import node.DataNode;
@@ -29,6 +29,8 @@ public final class GetCommand extends AbstractCommand implements Command {
 
 	private final static String[] NAMES = {"get"};
 	public String[] getNames() {return NAMES;}
+	
+	
 
 	public boolean execute() {
 
@@ -37,6 +39,9 @@ public final class GetCommand extends AbstractCommand implements Command {
 		MessageSender sender = receiver.getMessageSender();
 		StringBuilder sb = new StringBuilder();
 
+		
+		
+		pri(AnalyzerManager.getPurePutCountTag());
 
 		if (args.length == 0) {
 			if (interactive) {

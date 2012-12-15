@@ -196,103 +196,111 @@ public final class TreeNode extends MyUtil implements Node {
 	 * DataNodeが１つはないとB-linkに追加したDataNodeを割り込ませることができません
 	 * 解決方法としては親に尋ねるという方法があります。
 	 */
-	public void addDataNodes(DataNode[] dns){
+	public boolean addDataNodes(DataNode[] dns){
 		
-		//追加するデータノード間の参照を作る。親ノードへの参照を作る
-		for(int i=0;i< dns.length ; i++){
-			dns[i].setParent(this);
-			
-			if(dns.length == 1){break;}
-			if(i==0){
-				dns[i].setNext(dns[i+1]);
-			}else if(i== dns.length-1){
-				dns[i].setPrev(dns[i-1]);
-			}else{
-				dns[i].setNext(dns[i+1]);
-				dns[i].setPrev(dns[i-1]);
-			}
-		}
-		
-		DataNode rightMostDataNode = null;
-		boolean addToRightMost= false;
-		boolean isFirst = true;
-		
-		
-		for(int i=0; i< getChildrenSize();i++){
-			if(children[i] instanceof DataNode){
-				DataNode dnc = (DataNode)children[i];
-				/*
-				 * 子供の左はしに入れるか右端に入れるか判断します。
-				 */
-				/*
-				 * 左端に入れるとき
-				 * B-Link構造を維持するために
-				 * もともと一番左にあったデータノードのさらに前へのリンクがあれば
-				 * そのリンクを追加するデータノードの一番左へと更新する
-				 * また、一番左にあったデータノードの前へのリンクを追加するデータノードの一番右へ更新する。
-				 */
-				if(isFirst == true){
-					if(dns[dns.length-1].getMaxID().compareTo(dnc.getMinID()) < 0){
-						if(dnc.getPrev() != null){
-							dnc.getPrev().setNext(dns[0]);
-							dns[0].setPrev(dnc.getPrev());
-						}
-						dns[dns.length-1].setNext(dnc);
-						dnc.setPrev(dns[dns.length-1]);
-						/*
-						 * childrenの中の一番右のデータノードを後で使いたいのでループを抜けないように
-						 * してください。
-						 * don't break here!
-						 */
-					}
-					//右端に入れるとき
-					//右端がわからないのでここでは何もしない
-					//ループを抜けてから処理します。
-					else{
-						addToRightMost = true;
-					}
-					isFirst = false;
-				}
+		try{
+			//追加するデータノード間の参照を作る。親ノードへの参照を作る
+			for(int i=0;i< dns.length ; i++){
+				dns[i].setParent(this);
 				
-				rightMostDataNode = dnc;
-			}
-		}
-		//右端に入れるとき
-		if(addToRightMost == true){
-			if(rightMostDataNode.getNext() != null){
-				rightMostDataNode.getNext().setPrev(dns[dns.length-1]);
-				dns[dns.length-1].setNext(rightMostDataNode.getNext());
-			}
-			dns[0].setPrev(rightMostDataNode);
-			rightMostDataNode.setNext(dns[0]);
-		}
-		
-		
-		
-		//childrenをdataNodeを追加した新しいもの(newChildren)に置き換えます。
-		Node[] newChildren = new Node[getChildrenSize()+dns.length];
-		
-		if(addToRightMost == false){
-			for(int i=0,j=0;i < newChildren.length;i++){
-				if(i < dns.length){
-					newChildren[i] = dns[i];
+				if(dns.length == 1){break;}
+				if(i==0){
+					dns[i].setNext(dns[i+1]);
+				}else if(i== dns.length-1){
+					dns[i].setPrev(dns[i-1]);
 				}else{
-					newChildren[i] = children[j];
-					j++;
+					dns[i].setNext(dns[i+1]);
+					dns[i].setPrev(dns[i-1]);
 				}
 			}
-		}else{
-			for(int i=0,j=0;i < newChildren.length;i++){
-				if(i < getChildrenSize()){
-					newChildren[i] = children[i];
-				}else{
-					newChildren[i] = dns[j];
-					j++;
+			
+			DataNode rightMostDataNode = null;
+			boolean addToRightMost= false;
+			boolean isFirst = true;
+			
+			
+			for(int i=0; i< getChildrenSize();i++){
+				if(children[i] instanceof DataNode){
+					DataNode dnc = (DataNode)children[i];
+					/*
+					 * 子供の左はしに入れるか右端に入れるか判断します。
+					 */
+					/*
+					 * 左端に入れるとき
+					 * B-Link構造を維持するために
+					 * もともと一番左にあったデータノードのさらに前へのリンクがあれば
+					 * そのリンクを追加するデータノードの一番左へと更新する
+					 * また、一番左にあったデータノードの前へのリンクを追加するデータノードの一番右へ更新する。
+					 */
+					if(isFirst == true){
+						if(dns[dns.length-1].getMaxID().compareTo(dnc.getMinID()) < 0){
+							if(dnc.getPrev() != null){
+								dnc.getPrev().setNext(dns[0]);
+								dns[0].setPrev(dnc.getPrev());
+							}
+							dns[dns.length-1].setNext(dnc);
+							dnc.setPrev(dns[dns.length-1]);
+							/*
+							 * childrenの中の一番右のデータノードを後で使いたいのでループを抜けないように
+							 * してください。
+							 * don't break here!
+							 */
+						}
+						//右端に入れるとき
+						//右端がわからないのでここでは何もしない
+						//ループを抜けてから処理します。
+						else{
+							addToRightMost = true;
+						}
+						isFirst = false;
+					}
+					
+					rightMostDataNode = dnc;
 				}
 			}
+			//右端に入れるとき
+			if(addToRightMost == true){
+				if(rightMostDataNode.getNext() != null){
+					rightMostDataNode.getNext().setPrev(dns[dns.length-1]);
+					dns[dns.length-1].setNext(rightMostDataNode.getNext());
+				}
+				dns[0].setPrev(rightMostDataNode);
+				rightMostDataNode.setNext(dns[0]);
+			}
+			
+			
+			
+			//childrenをdataNodeを追加した新しいもの(newChildren)に置き換えます。
+			Node[] newChildren = new Node[getChildrenSize()+dns.length];
+			
+			if(addToRightMost == false){
+				for(int i=0,j=0;i < newChildren.length;i++){
+					if(i < dns.length){
+						newChildren[i] = dns[i];
+					}else{
+						newChildren[i] = children[j];
+						j++;
+					}
+				}
+			}else{
+				for(int i=0,j=0;i < newChildren.length;i++){
+					if(i < getChildrenSize()){
+						newChildren[i] = children[i];
+					}else{
+						newChildren[i] = dns[j];
+						j++;
+					}
+				}
+			}
+			
+			replaceChildren(newChildren);
+		}catch(Exception e){
+			return false;
 		}
 		
-		replaceChildren(newChildren);
+		return true;
+		
+		
 	}
 	
 	

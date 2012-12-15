@@ -1,4 +1,4 @@
-package analyze;
+package log_analyze;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -47,30 +47,18 @@ public class Main extends MyUtil{
 	 * この辺の変数は最初使っていたけど
 	 * もう必要ないです。
 	 */
-
-	private static String METHOD_NAME = "FatBtree";
-
+	/*private static String METHOD_NAME = "FatBtree";
 	//private static String METHOD_NAME = "SkipGraph";
-
 	//private static String METHOD_NAME = "PRing";
-
-
 	private static String YEAR = "2012";
-
 	private static String MONTH = "11";
-
 	private static String DAY = "08";
-
 	private static int NODE_NUM_FOR_ANALYZE = 2;
-
+*/
 
 
 
 	public static void main(String[] srgs){
-
-
-
-
 
 
 		File root = new File(LOG_FILE_ROOT);

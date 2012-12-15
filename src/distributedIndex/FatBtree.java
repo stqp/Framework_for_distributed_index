@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
-import analyze.AnalyzerManager;
 
 import com.google.gson.Gson;
 
@@ -25,6 +24,7 @@ import util.Shell;
 
 
 import loadBalance.LoadInfoTable;
+import log_analyze.AnalyzerManager;
 import main.Main;
 import message.LoadMessage;
 import node.AddressNode;
@@ -1436,7 +1436,7 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 		 * １．自分の負荷がある閾値より小さい
 		 * ２．自分の負荷が両隣の負荷のどちらよりも小さい
 		 */
-		if(myLoad < threshold || (myLoad < prevLoad && myLoad < nextLoad) ){
+		if(myLoad <= threshold || (myLoad <= prevLoad && myLoad <= nextLoad) ){
 			//負荷集計が終わったらデータノードに蓄積したアクセス負荷の情報をリセットします。
 			resetLoadCounter();
 			moveStartTime_msec = getCurrentTime();
@@ -1532,6 +1532,11 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 	}
 	
 	
+	private void sendUpdateInfo(InetSocketAddress target, DataNode[] dataNodesToBeRemoved){
+		
+		
+	}
+	
 
 	private void updateIndex(DataNode[] dataNodesToBeRemoved,
 			InetSocketAddress target) {
@@ -1553,7 +1558,7 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 			//もし親がルートノードなら終了
 			if(parent.getNumberOfLeafNodes() > 0 || parent.equals(this.root)){
 				for(InetSocketAddress isa : listToSend){
-					//sendUpdateInfo(isa,dataNodesToBeRemoved);
+					sendUpdateInfo(isa,dataNodesToBeRemoved);
 				}
 				return;
 			}

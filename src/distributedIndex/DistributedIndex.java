@@ -232,6 +232,7 @@ public interface DistributedIndex {
     public String getMyAddressIPString();
 
 
+    public void startLoadBalance();
 
     /*
      * データ容量偏り（まだできていないが、アクセス負荷）の調査及び、
@@ -239,8 +240,8 @@ public interface DistributedIndex {
      * そしてインデクス更新
      * の操作を行います。
      */
-    public void checkLoad(LoadInfoTable loadInfoTable, MessageSender sender);
-    boolean moveData(DataNode[] dataNodesToBeRemoved,InetSocketAddress target, MessageSender sender );
+   // public void checkLoad(LoadInfoTable loadInfoTable, MessageSender sender);
+   // boolean moveData(DataNode[] dataNodesToBeRemoved,InetSocketAddress target, MessageSender sender );
 
 
 
@@ -249,7 +250,7 @@ public interface DistributedIndex {
      * データ移動に伴って生じるインデクス更新によって、ほかの計算機から更新情報が送られてくるので
      * それを自分のインデクスに適用します。
      */
-    public String recieveAndUpdateDataForLoadMove(DataNode[] dataNodes, InetSocketAddress senderAddress);
+   // public String recieveAndUpdateDataForLoadMove(DataNode[] dataNodes, InetSocketAddress senderAddress);
 
 
 

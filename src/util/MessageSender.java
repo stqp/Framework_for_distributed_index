@@ -57,13 +57,19 @@ public class MessageSender {
 	
 	
 	
-	public void send(String msg, SocketAddress addr) throws IOException {
-		Socket sock = new Socket();
-		sock.connect(addr, 5000);
-		OutputStream outs = sock.getOutputStream();
-		outs.write((header+msg + Shell.CRLF).getBytes());
-		outs.flush();
-		sock.close();
+	public boolean send(String msg, SocketAddress addr) throws IOException {
+		try{
+			Socket sock = new Socket();
+			sock.connect(addr, 5000);
+			OutputStream outs = sock.getOutputStream();
+			outs.write((header+msg + Shell.CRLF).getBytes());
+			outs.flush();
+			sock.close();
+			return true;
+		}catch(IOException ioe){
+			ioe.printStackTrace();
+			return false;
+		}
 	}
 	
 	

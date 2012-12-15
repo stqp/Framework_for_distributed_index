@@ -1,5 +1,8 @@
 package util;
 
+import java.io.File;
+import java.io.IOException;
+
 public class MyUtil {
 	
 	
@@ -60,6 +63,37 @@ public class MyUtil {
 		}
 	}
 	
+	
+	
+	protected boolean isInteger(String num) {
+		try {
+			Integer.parseInt(num);
+			return true;
+		} catch (NumberFormatException e) {
+			return false;
+		}
+	}
+	
+	public File createFile(String filePath){
+		File file = new File(filePath);
+		pri(filePath);
+		try{
+			if (file.exists()){
+				file.delete();
+			}
+			file.createNewFile();
+			return file;
+		}catch(IOException e){
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	public void createDir(String dirPath){
+		pri(dirPath);
+		File dir = new File(dirPath);
+		dir.mkdirs();
+	}
 	
 }
 

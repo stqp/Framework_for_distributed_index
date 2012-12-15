@@ -1,4 +1,4 @@
-package analyze;
+package log_analyze;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -16,7 +16,7 @@ public class PutAnalyzer extends AbstractAnalyzer{
 	private int dbCount;
 	private long totalDbTime_millis;
 
-	
+	private static String tagForPurePutCount = "";
 	
 	
 	public PutAnalyzer(){
@@ -89,7 +89,7 @@ public class PutAnalyzer extends AbstractAnalyzer{
 
 
 	@Override
-	protected void beforeWriteResult(String analyzerResultDirPath,
+	public void beforeWriteResult(String analyzerResultDirPath,
 			String fileName) {
 		// TODO 自動生成されたメソッド・スタブ
 		

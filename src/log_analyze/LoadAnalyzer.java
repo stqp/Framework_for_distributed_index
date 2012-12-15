@@ -1,4 +1,4 @@
-package analyze;
+package log_analyze;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -12,9 +12,7 @@ import loadBalance.LoadChecker;
 
 public class LoadAnalyzer extends AbstractAnalyzer{
 
-	private static char tabChar = '\t';
-
-	private static char returnChar = '\n';
+	
 
 	private static String dirName = "load";
 
@@ -44,30 +42,7 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 
 	}
 
-	public class MyStringBuilder{
-		private StringBuilder sb = new StringBuilder();
-		private String name ;
-		public MyStringBuilder(String name) {
-			this.name = name;
-		}
-		public String getName(){
-			return this.name;
-		}
-		public MyStringBuilder append(String str){
-			sb.append(str);
-			return this;
-		}
-		public MyStringBuilder append(char c){
-			sb.append(c);
-			return this;
-		}
-		public String toString(){
-			return sb.toString();
-		}
-	}
-
-
-
+	
 
 
 	public void analyze(String line){
@@ -177,17 +152,6 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 
 
 
-	private String makeLogLine(String line){
-		String lineToAdd = "";
-		String[] items = splitLine(line);
-		for(int i=1;i<items.length;i++){
-			lineToAdd += items[i]+ tabChar;
-		}
-		return (lineToAdd + returnChar);
-	}
-
-
-
 	@Override
 	public void showResult() {
 		pri("Load");
@@ -206,7 +170,7 @@ public class LoadAnalyzer extends AbstractAnalyzer{
 	 * (非 Javadoc)
 	 * @see analyze.AbstractAnalyzer#beforeWriteResult(java.lang.String, java.lang.String)
 	 */
-	protected void beforeWriteResult(String analyzerResultDirPath,String fileName){
+	public void beforeWriteResult(String analyzerResultDirPath,String fileName){
 		for(MyStringBuilder msb : resultList){
 			createDir(analyzerResultDirPath+ "/"+ dirName+ "/"+ msb.getName());
 		}

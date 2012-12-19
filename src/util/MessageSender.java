@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.net.Socket;
 import java.net.InetAddress;
 import java.net.SocketAddress;
@@ -16,14 +17,15 @@ import java.util.List;
 
 import com.google.gson.Gson;
 
+import message.DataMessage;
 import message.DataNodeMessage;
 import message.MessageConverter;
 import node.DataNode;
 
-public class MessageSender {
+public class MessageSender implements Serializable{
 	private MessageReceiver receiver;
 	private String header;
-	
+
 	private Gson gson ;
 
 	public MessageSender(MessageReceiver receiver) {
@@ -31,7 +33,7 @@ public class MessageSender {
 		this.header = "";
 		this.gson = new Gson();
 	}
-	
+
 	public MessageSender setHeader(String header){
 		this.header = header;
 		return this;
@@ -47,16 +49,18 @@ public class MessageSender {
 		InetSocketAddress addr = new InetSocketAddress(host, port);
 		this.send(msg, signature, addr);
 	}
-	
-	
+
+
 	public String sendDataNodeAndReceive(DataNode[] dataNodes, InetSocketAddress targeter, InetSocketAddress target) throws IOException{
 		DataNodeMessage dnm = new DataNodeMessage(dataNodes, targeter);
-		return this.sendAndReceive(header+dnm.toJson(), target);
+		DataMessage dm = new DataMessage();
+		dm.setDataNodeMessage(dnm);
+		return this.sendAndReceive(header+dm.toJson(), target);
 	}
-	
-	
-	
-	
+
+
+
+
 	public boolean send(String msg, SocketAddress addr) throws IOException {
 		try{
 			Socket sock = new Socket();
@@ -71,10 +75,12 @@ public class MessageSender {
 			return false;
 		}
 	}
-	
-	
-	
-	
+
+
+	public String customSendAndReceive(String msg, SocketAddress target) throws IOException{
+		return this.sendAndReceive(header+msg, target);
+	}
+
 
 	public void send(String msg, int signature, SocketAddress addr) throws IOException {
 		Socket sock = new Socket();

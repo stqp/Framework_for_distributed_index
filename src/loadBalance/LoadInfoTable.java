@@ -23,7 +23,7 @@ public class LoadInfoTable{
 	//private HashMap<String, LoadInfoList> map;
 
 	private HashMap<String, Integer> loadList;
-	
+
 	private HashMap<String, Integer> dataSizeList;
 
 	//ロードがセットされた時間を管理することで受け取ったロードリストと自分のロードリストの情報のどちらを優先するかを決めます。
@@ -32,8 +32,8 @@ public class LoadInfoTable{
 	/**
 	 * 計算機ごとの平均アクセス回数を格納します。
 	 */
-	protected int average = 0;
-
+/*	protected int average = 0;
+*/
 	/**
 	 * owner of this LoadInfoTable object.
 	 * 現在のところコンピュータのアドレスをtoStringしたものを使おうと思う。
@@ -47,7 +47,7 @@ public class LoadInfoTable{
 		this.timeCard = new HashMap<String, Long>();
 	}
 
-	//donot use this constructor 
+	//donot use this constructor
 	//because master is not need.
 	/*public LoadInfoTable(String master){
 		//this.master = master;
@@ -75,25 +75,18 @@ public class LoadInfoTable{
 		loadList.put(master, load);
 		timeCard.put(master, System.currentTimeMillis());
 	}
-	
+
 
 	/*
 	 * this method is called when setLoad is called.
-	 * so we don't need set the timeCard  here. 
+	 * so we don't need set the timeCard  here.
 	 */
 	public void setDataSize(String master, int dataSize){
 		if(master== null || master.length() == 0) return ;
 		dataSizeList.put(master, dataSize);
 	}
-	
 
-	public void reCalcAverage(){
-		int loadCount = 0;
-		for (Iterator<String> master = loadList.keySet().iterator(); master.hasNext();) {
-			loadCount += loadList.get(master.next());
-		}
-		this.average = loadList.size()==0? 0 : loadCount / loadList.size();
-	}
+
 
 
 	/**
@@ -101,14 +94,14 @@ public class LoadInfoTable{
 	 * ただし自分の情報は上書きさせない。
 	 */
 	public void updateLoadInfoList(
-			String master, 
-			HashMap<String , Integer> passedloadList, 
+			String master,
+			HashMap<String , Integer> passedloadList,
 			HashMap<String , Long> passedTimecard,
 			HashMap<String, Integer> passedDataSizeList){
-		
+
 		for (Iterator<String> key = passedloadList.keySet().iterator(); key.hasNext();) {
 			String temp = key.next();
-			
+
 			if(this.loadList.get(temp) == null || this.timeCard.get(temp) < passedTimecard.get(temp)){
 				this.loadList.put(temp, passedloadList.get(temp));
 				this.dataSizeList.put(temp, passedDataSizeList.get(temp));
@@ -129,8 +122,8 @@ public class LoadInfoTable{
 	public void recieveLoadInfoTableString(String master, String loadInfoTableString){
 		LoadInfoTable loadInfoTable = (new Gson()).fromJson(loadInfoTableString, LoadInfoTable.class);
 		this.updateLoadInfoList(
-				master , 
-				loadInfoTable.getLoadList(), 
+				master ,
+				loadInfoTable.getLoadList(),
 				loadInfoTable.getTimeCard(),
 				loadInfoTable.getDataSizeList());
 	}
@@ -141,7 +134,7 @@ public class LoadInfoTable{
 	public HashMap<String, Integer> getDataSizeList(){
 		return this.dataSizeList;
 	}
-	
+
 	public HashMap<String, Integer> getLoadList(){
 		return this.loadList;
 	}
@@ -156,7 +149,11 @@ public class LoadInfoTable{
 
 
 	public int getAverage(){
-		return this.average;
+		int loadCount = 0;
+		for (Iterator<String> master = loadList.keySet().iterator(); master.hasNext();) {
+			loadCount += loadList.get(master.next());
+		}
+		return loadList.size()==0? 0 : loadCount / loadList.size();
 	}
 
 

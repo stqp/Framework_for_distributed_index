@@ -2,6 +2,7 @@ package store;
 // LocalStore.java
 
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 import util.ID;
@@ -9,7 +10,7 @@ import util.NodeStatus;
 
 import node.DataNode;
 
-public interface LocalStore {
+public interface LocalStore extends Serializable{
     String getName();
 
     LocalStore toInstance(String[] text, ID id);

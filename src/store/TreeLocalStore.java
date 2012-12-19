@@ -6,7 +6,7 @@ import java.util.ArrayList;
 
 import util.ID;
 import util.LatchUtil;
-import util.LocalStore;
+import store.LocalStore;
 import util.MessageSender;
 import util.NodeStatus;
 import util.Shell;
@@ -34,9 +34,27 @@ public final class TreeLocalStore implements LocalStore {
 		this.root.children[0] = dataNode;
 		this.leftmost = dataNode;
 	}
-	
+
 	public void setFirstDataNode(DataNode dn){
 		this.leftmost = dn;
+	}
+
+
+	public DataNode searchFirstDataNode(){
+		Node current = this.root;
+		while( true){
+			if(current instanceof TreeNode){
+				current = ((TreeNode)current).children[0];
+			}else if(current instanceof DataNode){
+				return (DataNode)current;
+			}else{
+				return null;
+			}
+		}
+	}
+
+	public TreeNode getRoot(){
+		return this.root;
 	}
 
 

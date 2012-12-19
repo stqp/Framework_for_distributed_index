@@ -1,7 +1,9 @@
 package util;
+
+import java.io.Serializable;
 // LatchUtil.java
 
-public final class LatchUtil {
+public final class LatchUtil  implements Serializable{
     public static final int IS = 0;
     public static final int IX = 1;
     public static final int S = 2;

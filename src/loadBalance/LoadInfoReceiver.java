@@ -1,5 +1,7 @@
 package loadBalance;
 
+import java.io.Serializable;
+
 import distributedIndex.DistributedIndex;
 
 
@@ -10,7 +12,7 @@ import distributedIndex.DistributedIndex;
  * ２．メッセージをオブジェクトに戻す（そのオブジェクトの種類がわかればそのオブジェクトのメソッドを使えるようにする。）
  * ３．メッセージの種類に応じた処理を行う（隣の計算機からきた負荷情報テーブル、データ移動するという情報、移動結果の情報）
  */
-public class LoadInfoReceiver{
+public class LoadInfoReceiver implements Serializable{
 
 
 	private DistributedIndex distributedIndex;
@@ -31,18 +33,18 @@ public class LoadInfoReceiver{
 
 	/*
 	 * TODO
-	 * 
+	 *
 	 */
 	public void receive( String message , DistributedIndex distributedIndex){
 
 		String[] items = message.split("\\s+");
-		
+
 		/*
 		 * header must be LoadChecker.getLoadInfoTag().
 		 * now i set the value "LOAD_INFO".
 		 */
 		String header = items[0];
-		
+
 		System.out.println("LOAD_INFO_FROM_PREVIOUS " + message);
 
 		/*

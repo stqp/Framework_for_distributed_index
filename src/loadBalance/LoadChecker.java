@@ -31,36 +31,9 @@ import node.Node;
 
 public class LoadChecker extends MyUtil implements Runnable {
 
-
-	/*
-	 * loadInfoTableという計算機ごとのアクセス回数を格納したリストを用意する
-	 */
-	private LoadInfoTable loadInfoTable;
-
-	public static String getLoadInfoTag(){
-		return "LOAD_INFO";
-	}
-
-
-	/*
-	 * loadInfoListというデータノード毎のアクセス回数を格納したリストを用意する。
-	 */
-	//private List<LoadInfo>loadInfoList;
-
-
-	/*
-	 * wait a few second every check load.
-	 * default 5000 msec = 5s.
-	 */
+	//private LoadInfoTable loadInfoTable;
 	private int interval = 3000;
-
-
-	/*
-	 * access to data node counter by this.
-	 */
 	private DistributedIndex distributedIndex;
-
-
 	private MessageReceiver receiver;
 
 
@@ -71,31 +44,28 @@ public class LoadChecker extends MyUtil implements Runnable {
 		this.interval = interval;
 		this.distributedIndex = distributedIndex;
 		this.receiver = receiver;
-
-		//TODO
-		//future work : nullを入れる必要があるのは分散インデックス手法の初期化のタイミングがshellからの命令に依存するからです。
-		//LoadInfoTableのマスターを設定しておきたいのにここではできません。
-		this.loadInfoTable = new LoadInfoTable();
+		//this.loadInfoTable = new LoadInfoTable();
 	}
 
 
-	public LoadInfoTable getLoadInfoTable(){
-		return this.loadInfoTable;
+	public static String getLoadInfoTag(){
+		return "LOAD_INFO";
 	}
 
+	/*public LoadInfoTable getLoadInfoTable(){
+		//return this.loadInfoTable;
+	}*/
 
 
-
-
-	public void setLoad(String master, LoadInfoTable load){
+	/*public void setLoad(String master, LoadInfoTable load){
 		synchronized (this.loadInfoTable) {
 			this.loadInfoTable.updateLoadInfoList(
-					master, 
+					master,
 					load.getLoadList(),
 					load.getTimeCard(),
 					load.getDataSizeList());
 		}
-	}
+	}*/
 
 	/*
 	 * たぶんスレッドにして一定時間ごとに生き返って処理を行えばいいじゃん
@@ -107,109 +77,15 @@ public class LoadChecker extends MyUtil implements Runnable {
 				Thread.sleep(interval);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
-				System.out.println("error :at "+ this.getClass().toString() + "at run at Thread.sleep");
 			}
-
-
 			try{
-				this.distributedIndex.checkLoad(this.loadInfoTable, this.receiver.getMessageSender());
+				this.distributedIndex.startLoadBalance();
 			}catch(Exception e){
 				pri("ERROR at LoadChecker.class at run method :");
 				e.printStackTrace();
 			}
-
-
-			//try{
-
-
-
-			//synchronized (distributedIndex) {
-
-			//LoadInfoList loadInfoList = checkLoad(distributedIndex);
-			//distributedIndex.checkLoad(loadInfoTable, );
-			//System.out.println("LOAD_COLLECT" + loadInfoList.toString());
-			//System.out.println(this.distributedIndex.getName()+".toString:"+this.distributedIndex.toString());
-
-
-			/*
-			 * send load information to next machine.
-			 */
-			/*try {
-						sendLoadInfoTo(distributedIndex.getNextMachine(), loadInfoTable);
-					} catch (IOException e) {
-						System.out.println("at LoadChecker class at sendLoadInfoTo method");
-						e.printStackTrace();
-					}*/
-
-
-
-
-			//updateLoadInfoTable(distributedIndex.getID(), loadInfoList);
-			//moveDataNode(distributedIndex, loadInfoTable, receiver.getMessageSender());
-
-			//}
-
-			//}catch(Exception e){
-
-			//}
-
 		}
 	}
-
-
-
-
-
-	/*	private DataNode[] moveDataNode(DistributedIndex distributedIndex, LoadInfoTable loadInfoTable, MessageSender sender){
-		if (isOverLoad(loadInfoTable) == true ){
-
-	 * 移動先以外の計算機にデータ移動を伝える
-	 * 移動先の計算機にデータを転送する
-
-
-
-
-	 * もしdistributedIndexにデータ移動のメソッドがない場合には
-	 *
-	 * １．分散インデックス手法に機能を追加する
-	 * ２．フレームワーク側で分散インデックス手法をいじくる
-	 *
-	 * 基本的には１の方法で行うべし。２の場合はしたのメソッドを実装する。
-	 *
-	 * sendLoadInfoTo(distributedIndex.getNextMachine(), loadInfoTable);//targetPEは隣の計算機
-
-		}
-		return null;
-	}*/
-
-
-
-
-
-
-	/*	private void sendLoadInfoTo(InetSocketAddress target, LoadInfoTable loadInfoTable) throws IOException{
-
-		System.out.println("LOAD_TARGET_INFO "+target.toString());
-
-
-		if(target == null || loadInfoTable == null) return ;
-
-		receiver.getMessageSender().send(LoadChecker.getLoadInfoTag() + " " + loadInfoTable.toString(), target);
-	}
-
-
-	private boolean isOverLoad(LoadInfoTable LoadInfoTable){
-		int ave = LoadInfoTable.getAverageAccess();
-
-		return false;
-	}
-
-
-	public void updateLoadInfoTable(ID id, List loadInfoList){
-
-	}*/
-
-
 
 
 }

@@ -1,10 +1,12 @@
 package util;
 
+import java.io.Serializable;
+
 import node.Node;
 // NodeStatus.java
 
 // immutable
-public class NodeStatus {
+public class NodeStatus implements Serializable{
     private Node node;
     private int type;
 

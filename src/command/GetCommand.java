@@ -107,7 +107,7 @@ public final class GetCommand extends AbstractCommand implements Command {
 					long dbEndTime = System.currentTimeMillis();
 					if (sb.length() > 0) sb.delete(sb.length() - 1, sb.length());
 					value = temp.toString();
-					System.err.println("TIME get db " + dbStartTime + " " + dbEndTime + " " + (dbEndTime - dbStartTime));
+					//System.err.println("TIME get db " + dbStartTime + " " + dbEndTime + " " + (dbEndTime - dbStartTime));
 				}
 
 
@@ -127,7 +127,7 @@ public final class GetCommand extends AbstractCommand implements Command {
 			}
 			else {
 				if (node == null) {
-					System.err.println("WARNING get none");
+					//System.err.println("WARNING get none");
 					if (args.length == 1) {
 					}
 					else {
@@ -136,7 +136,7 @@ public final class GetCommand extends AbstractCommand implements Command {
 					}
 				}
 				else {
-					System.err.println("TENSO get");
+					//System.err.println("TENSO get");
 					AddressNode addrNode = (AddressNode)node;
 					if (args.length == 1) {
 						int sig = Main.random.nextInt();
@@ -149,7 +149,7 @@ public final class GetCommand extends AbstractCommand implements Command {
 							String[] res = responses[0].split(" ", 3);
 							sb.append(res[2] + Shell.CRLF);
 						}
-						System.err.println("TIME get wait " + waitStartTime + " " + waitEndTime + " " + (waitEndTime - waitStartTime));
+						//System.err.println("TIME get wait " + waitStartTime + " " + waitEndTime + " " + (waitEndTime - waitStartTime));
 					}
 					else {
 						String msg = "get " + args[0] + " " + addrNode.getText() + " " + getPort + " " + getAddr.getAddress().getHostAddress();
@@ -168,7 +168,7 @@ public final class GetCommand extends AbstractCommand implements Command {
 		}
 
 		long endTime = System.currentTimeMillis();
-		System.err.println("TIME get " + args.length + " " + startTime + " " + endTime + " " + (endTime - startTime));
+		//System.err.println("TIME get " + args.length + " " + startTime + " " + endTime + " " + (endTime - startTime));
 		pri(AnalyzerManager.getLogGetTag()
 				+" "+(endTime-startTime));
 		return false;

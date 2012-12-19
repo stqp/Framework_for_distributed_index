@@ -9,11 +9,18 @@ import java.util.HashMap;
 import java.io.IOException;
 import java.io.InputStream;
 // import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.InetSocketAddress;
+
+import org.apache.commons.lang.SerializationUtils;
 
 import com.google.gson.Gson;
 
@@ -27,8 +34,11 @@ import loadBalance.LoadInfoTable;
 
 
 import command.Command;
+import distributedIndex.AbstractDistributedIndex;
 import distributedIndex.DistributedIndex;
 import distributedIndex.FatBtree;
+import distributedIndex.PRing;
+import distributedIndex.SkipGraph;
 
 
 /**
@@ -59,6 +69,16 @@ public final class Shell extends MyUtil implements Runnable {
 	private boolean isSourceShell = false;
 
 	private LoadChecker loadChecker;
+
+	volatile private boolean canMoveData=true;
+
+	synchronized private void startMoveData(){
+		canMoveData=false;
+	}
+	synchronized private void endMoveData(){
+		canMoveData=true;
+	}
+
 
 
 	public static List<Command> createCommandList(Class[] commandClasses) {
@@ -91,8 +111,6 @@ public final class Shell extends MyUtil implements Runnable {
 	}
 
 
-
-
 	public Shell(Socket sock, MessageReceiver receiver, Map<String, Command> commandTable, DistributedIndex distIndex, ID id) throws IOException {
 		this.sock = sock;
 		this.receiver = receiver;
@@ -103,8 +121,6 @@ public final class Shell extends MyUtil implements Runnable {
 		this.distIndex = distIndex;
 		this.id = id;
 	}
-
-
 
 	public Shell(InputStream in, PrintStream out, MessageReceiver receiver, Map<String, Command> commandTable, DistributedIndex distIndex, ID id) {
 		this.sock = null;
@@ -118,8 +134,6 @@ public final class Shell extends MyUtil implements Runnable {
 		this.distIndex = distIndex;
 		this.id = id;
 	}
-
-
 	/*
 	 * loadcheckerは定期的に分散インデックス手法に負荷集計を行うように命令を出します。
 	 * このクラスは他の計算機からメッセージを受け取るので、負荷情報を受け取った時に
@@ -127,43 +141,29 @@ public final class Shell extends MyUtil implements Runnable {
 	 */
 	public Shell setLoadChecker(LoadChecker loadChecker){
 		this.loadChecker = loadChecker;
-
 		if(this.loadChecker == null){
 			//ここには到達しませんでした
 			priJap("しかしロードチェッカーはヌルです");
 		}
-
 		return this;
 	}
 
 	public boolean isInteractive() {return this.interactive;}
-
-
 	public boolean setInteractive(boolean flag) {
 		boolean old = this.interactive;
 		this.interactive = flag;
 		return old;
 	}
-
-
-
 	public int getSignature() {return this.signature;}
-
-
 	public int setSignature(int signature) {
 		int old = this.signature;
 		this.signature = signature;
 		return old;
 	}
-
 	public InetSocketAddress getRemoteSocketAddress() {
 		if (this.sock == null) return null;
 		return (InetSocketAddress)this.sock.getRemoteSocketAddress();
 	}
-
-
-
-
 	public void setSourceShell(boolean flag) {
 		this.isSourceShell = flag;
 	}
@@ -174,10 +174,7 @@ public final class Shell extends MyUtil implements Runnable {
 
 	public void run() {
 		long startTime = 0;
-
 		if (this.isSourceShell) startTime = System.currentTimeMillis();
-
-
 		while (true) {
 			String commandLine = null;
 			try {
@@ -186,13 +183,6 @@ public final class Shell extends MyUtil implements Runnable {
 			catch (IOException e) {
 				e.printStackTrace();
 			}
-
-			//debug
-			if(commandLine.length() > 0){
-				//System.out.println("MYTEST "+commandLine);
-			}
-
-
 			boolean quit = this.parseALine(commandLine);
 			if (quit || !this.interactive) {
 				break;
@@ -214,14 +204,12 @@ public final class Shell extends MyUtil implements Runnable {
 			}
 		}
 
-
 		try {
 			this.in.close();
 		}
 		catch (IOException e) {
 			System.err.print("WARNING close() IOException." + CRLF);
 		}
-
 
 		if (this.isSourceShell) {
 			long endTime = System.currentTimeMillis();
@@ -230,9 +218,9 @@ public final class Shell extends MyUtil implements Runnable {
 	}
 
 
-	
-	
-	
+
+
+
 	private boolean parseALine(String commandLine) {
 		if (commandLine == null) return true;
 		if (commandLine.startsWith("interactive")) {
@@ -268,23 +256,8 @@ public final class Shell extends MyUtil implements Runnable {
 		}
 
 
-		/*
-		 * TODO
-		 * 負荷分散に関する情報が来たので
-		 * １．データ移動するから私たちにデータを渡さないでねーという情報
-		 * ２．君にデータを送るよーという情報
-		 * ３．データ移動が終わったから結果を送るよーという情報
-		 * のいずれかです。たぶん。
-		 */
-		/*else if(commandLine.startsWith(LoadChecker.getLoadInfoTag() )){
-			new LoadInfoReceiver().receive(commandLine,this.distIndex);
-		}*/
-
-
 		//テスト用
 		/*else if(commandLine.startsWith("check dataLoad")){
-
-
 			synchronized (this.distIndex) {
 				DataNode dataNode = this.distIndex.getFirstDataNode();
 				String result = "check dataLoad";
@@ -299,57 +272,178 @@ public final class Shell extends MyUtil implements Runnable {
 				System.out.println(this.distIndex.getName()+".toString:"+this.distIndex.toString());
 				System.out.println(this.distIndex.getName()+".toMessage:"+this.distIndex.toMessage());
 			}
-
-
 		}*/
 
 		/*
 		 * 隣から負荷情報が送られてきたとき
 		 */
 		else if(commandLine.startsWith("LOAD_INFO")){
-
-
-			pri("===== 負荷情報を受け取りました。 ======");
+			/*pri("===== 負荷情報を受け取りました。 ======");
 			priJap("受け取ったメッセージは");
 			pri(commandLine);
-
 			String temp = commandLine.substring("LOAD_INFO".length());
-
 			priJap("トリミングした後のメッセージは");
 			pri(temp);
 			Gson gson = new Gson();
 			LoadMessage loadmes = gson.fromJson(temp, LoadMessage.class);
-
 			priJap("送り主は");
 			pri(loadmes.getSender().toString());
 			priJap("データは");
 			pri(loadmes.getLoadInfoTable().toJson());
 
 			if(this.distIndex.getMyAddressIPString().length() == 0 || loadmes.getLoadInfoTable() == null) return false;
-			this.loadChecker.setLoad(this.distIndex.getMyAddressIPString(),loadmes.getLoadInfoTable());
 
+			this.loadChecker.setLoad(this.distIndex.getMyAddressIPString(),loadmes.getLoadInfoTable());*/
+			((AbstractDistributedIndex)this.distIndex).receiveLoadInfo(commandLine);
 			return false;
-
 		}
+
+
 
 		/*
 		 * 負荷分散のためのデータ移動で
 		 * データノードが来たとき
 		 */
 		else if(commandLine.startsWith("LOAD_MOVE_DATA_NODES")){
-
-			priJap("データノードを受け取りました");
+			/*priJap("データノードを受け取りました");
 			priJap("受け取ったメッセージは");
 			pri(commandLine);
-
 			String substring = commandLine.substring("LOAD_MOVE_DATA_NODES".length());
 			DataNodeMessage dtnMes = (new Gson()).fromJson(substring, DataNodeMessage.class);
-
 			priJap("送り主は");
-			pri(dtnMes.getSenderAddress().toString());
+			pri(dtnMes.getSenderAddress().toString());*/
 
-			String res = this.distIndex.recieveAndUpdateDataForLoadMove(dtnMes.getDataNodes(),dtnMes.getSenderAddress());
+			String res = ((AbstractDistributedIndex)this.distIndex).receiveData(commandLine);
+
+
+			//String res = this.distIndex.recieveAndUpdateDataForLoadMove(dtnMes.getDataNodes(),dtnMes.getSenderAddress());
 			this.out.print(res);
+			this.out.flush();
+			canMoveData = true;
+			return false;
+		}
+		/*
+		 * ゲットが始まる時間をセットします。
+		 */
+		else if(commandLine.startsWith("get start")){
+			MyUtil.setQueryTime();
+		}
+
+		else if(commandLine.startsWith("put start")){
+			try{
+				pri("put start");
+				pri(this.distIndex.getName());
+				if(this.distIndex instanceof PRing){
+					PRing pring = (PRing)this.distIndex;
+					pri(pring.fromStatusToString());
+				}
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+		}
+		
+
+		/*
+		 * オブジェクトを文字列かします
+		 */
+		else if(commandLine.startsWith("forDebug")){
+			/*Exhibit exhibit = new Exhibit();
+		      Cat testCat = (new Cat());
+		      testCat.setName("test");
+		      exhibit.setAnimal(testCat);*/
+			priJap("distIndexを文字列か");
+			pri("ファイルエンコード:"+System.getProperty("file.encoding"));
+			String current =  new File("").getAbsolutePath();
+			String filePathForSerializeObject = "object";
+			try {
+
+				File file = new File(current+filePathForSerializeObject);
+				try{
+					if (file.exists()){
+						file.delete();
+					}
+					file.mkdirs();
+					file.createNewFile();
+				}catch(IOException e){
+					e.printStackTrace();
+				}
+
+				/*
+				 * インデックスのfirstデータノードを文字列化してみます。
+				 */
+				File firstDataNodeFile = new File(current+ "/"+ filePathForSerializeObject+"/dataNode");
+				if(!firstDataNodeFile.exists()){
+					firstDataNodeFile.createNewFile();
+				}
+				FileOutputStream out = new FileOutputStream(firstDataNodeFile);
+				ObjectOutputStream outObject = new ObjectOutputStream(out);
+				outObject.writeObject(this.distIndex.getFirstDataNode());
+				pri(this.distIndex.getFirstDataNode().toMessage());
+				pri("size:"+this.distIndex.getFirstDataNode().size());
+				outObject.close();
+				out.close();
+
+
+				/*
+				 * インデックスを文字列化してみます
+				 */
+				FileOutputStream outFile = new FileOutputStream("object.txt");
+				outObject = new ObjectOutputStream(outFile);
+				outObject.writeObject(this.distIndex);
+				outObject.close();
+				outFile.close();
+
+
+				pri("文字列化したオブジェクトをもとに戻してみます。");
+				FileInputStream inFile = new FileInputStream("object.txt");
+				ObjectInputStream inObject = new ObjectInputStream(inFile);
+				DistributedIndex skip = null;
+				try {
+					skip = (SkipGraph)inObject.readObject();
+					pri(skip.getName());
+				} catch (ClassNotFoundException e) {
+					// TODO 自動生成された catch ブロック
+					e.printStackTrace();
+				}
+				inObject.close();
+				inFile.close();
+
+				if(skip!=null){
+					pri(skip.toMessage());
+				}
+
+				inFile = new FileInputStream(current+ "/"+ filePathForSerializeObject+"/dataNode");
+				inObject = new ObjectInputStream(inFile);
+				DataNode firstDataNode = null;
+				try {
+					firstDataNode = (DataNode)inObject.readObject();
+					pri(firstDataNode.getName());
+				} catch (ClassNotFoundException e) {
+					e.printStackTrace();
+				}
+				inObject.close();
+				inFile.close();
+
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+			pri("文字列化の実験終わり");
+			// byte[] by = SerializationUtils.serialize(this.distIndex);
+			// System.out.println(by);
+		}
+
+
+		/*
+		 * 自分がデータ移動中でないかを調べます。
+		 */
+		else if(commandLine.startsWith("LOAD_MOVE_QUESTION")){
+			priJap("LOAD_MOVE_QUESTION");
+			if(canMoveData==true) {
+				canMoveData=false;
+				this.out.print("OK");
+			}else{
+				this.out.print("NO");
+			}
 			this.out.flush();
 			return false;
 		}
@@ -367,98 +461,6 @@ public final class Shell extends MyUtil implements Runnable {
 		}
 
 
-
-		//テスト用
-		/*else if(commandLine.startsWith("MOVE_DATA_NODE")){
-			System.out.println(commandLine);
-			if(commandLine.startsWith("MOVE_DATA_NODE_TO_RIGHT")){
-				System.out.println(commandLine);
-				String temp = commandLine.substring("MOVE_DATA_NODE_TO_RIGHT".length());
-				System.out.println(temp);
-				Gson gson = new Gson();
-				ArrayList<String> re = gson.fromJson(temp, ArrayList.class);// <- result string which header string removed.
-				for(String str:re){
-					System.out.println("GSON: to arraylist from string:" + str);
-				}
-
-
-				List<DataNode> dataNodes = new ArrayList<DataNode>();
-				DataNode dataNode = new DataNode();
-				try{
-					for(String str:re){
-						if(str.equals(":")){
-							System.out.println("DEBUG_ADDED_DATANODE_SIZE:"+dataNode.size());
-							System.out.println("DEBUG_ADDED_DATANODE_toString:"+dataNode.toString());
-							dataNodes.add(dataNode);
-							dataNode = new DataNode();
-						}else if(str != null){
-							System.out.println("DEBUG:dataNode_ADDed_this:"+str);
-
-							boolean ack = dataNode.add(new AlphanumericID(str));
-							System.out.println("DEBUG_data_ACK:"+ ack);
-						}
-					}
-				}catch(Exception e){
-					System.out.println("ERROR: add data nodes");
-					e.printStackTrace();
-				}
-
-
-
-
-				synchronized (this.distIndex) {
-					System.out.println("DEBUG_START_ADD_DATANODE");
-					System.out.println("DEBUG:numberOfDataNodes:"+ dataNodes.size());
-					System.out.println("DEBUG:"+dataNodes.get(0));
-					System.out.println("DEBUG:"+dataNodes.get(1));
-					//this.distIndex.addPassedDataNodes(true, dataNodes);
-				}
-			}else if(commandLine.startsWith("MOVE_DATA_NODE_TO_LEFT")){
-
-			}
-
-
-
-
-
-		}
-
-
-		//test用
-		else if(commandLine.startsWith("FORCE_MOVE_DATA")){
-
-			System.out.println(commandLine);
-
-			synchronized (this.distIndex) {
-				
-				 * edn1の右端２つのデータノードをedn2に移動させます。
-				 
-				DataNode dataNode = this.distIndex.getFirstDataNode();
-				while(dataNode.getNext() != null){
-					dataNode = dataNode.getNext();
-				}
-				DataNode[] dataNodes = {dataNode.getPrev(),dataNode};
-
-				try {
-					System.out.println(dataNode.getParent().toString());
-					System.out.println(dataNode.getParent().toMessage());
-					System.out.println(this.distIndex.getNextMachine().toString());
-				} catch (Exception e1) {
-					e1.printStackTrace();
-				}
-
-
-				//this.distIndex.checkLoad(this.receiver.getMessageSender());
-
-				//this.distIndex.moveRightMostDataNodes(dataNodes, this.distIndex.getNextMachine(), receiver.getMessageSender().setHeader("MOVE_DATA_NODE_TO_RIGHT"));
-				
-				 * usage:
-				 * this.distIndex.moveLeftMostDataNodes(dataNodes, this.distIndex.getNextMachine(), receiver.getMessageSender().setHeader("MOVE_DATA_NODE_TO_LEFT"));
-				 
-
-			}
-		}
-*/
 
 
 

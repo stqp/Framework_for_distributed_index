@@ -22,6 +22,10 @@ public class MyStringBuilder{
 		sb.append(c);
 		return this;
 	}
+	public MyStringBuilder appendWithReturn(Object obj){
+		sb.append(obj);
+		return this;
+	}
 	public String toString(){
 		return sb.toString();
 	}

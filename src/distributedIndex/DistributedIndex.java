@@ -3,11 +3,13 @@ package distributedIndex;
 
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.List;
 
 import loadBalance.LoadInfoTable;
+import message.UpdateInfoMessage;
 
 import util.ID;
 import util.MessageSender;
@@ -17,15 +19,13 @@ import node.AddressNode;
 import node.DataNode;
 import node.Node;
 
-public interface DistributedIndex {
+public interface DistributedIndex extends Serializable{
     String getName();
-
 
     /*
      * 他の計算機から送られてきたメッセージを処理します。
      */
     String handleMessge(InetAddress host, ID id, String[] text);
-
 
     /*
      * 分散インデックス手法の状態を初期化する
@@ -33,10 +33,7 @@ public interface DistributedIndex {
     void initialize(ID id);
     void initialize(DistributedIndex distIndex, InetSocketAddress addr, ID id);
     DistributedIndex toInstance(String[] text, ID id);
-
-
     String toMessage();
-
 
     //よりわからないですが徳田は使っていないメソッドです。
     InetSocketAddress[] getAckMachine();
@@ -55,24 +52,20 @@ public interface DistributedIndex {
      */
     ID[] getResponsibleRange(MessageSender sender) throws IOException;
 
-
     /*
      * 自分の担当する範囲のうち最小のIDを含むデータノードを返します。
      */
     DataNode getFirstDataNode();
-
 
     /*
      * 渡したデータノードの次にあたるデータノードを返します。
      */
     DataNode getNextDataNode(DataNode dataNode);
 
-
     /*
      *
      */
     ID[] getDataNodeRange(DataNode dataNode);
-
 
     /*
      * 自分に対して次にあたる計算機のアドレスを返します。
@@ -84,27 +77,23 @@ public interface DistributedIndex {
      */
     InetSocketAddress getNextMachine();
 
-
     /*
      * 単一のキーに対して検索をかける
      */
     Node searchKey(MessageSender sender, ID key) throws IOException;
 
-
     /*
      * よくわからないが、単一のキーに対して検索を行う
      * そしてDataNodeを返す時はそのノードがキーを含むとき
      * AddressNodeを返す時は転送先にキーがある可能性があるとき。
-     * 
+     *
      * textには 「_first_」 だったり、何か保存用ハッシュのキーだったりと、
      * 使い方が悪いように思える。
      * そもそも設計自体がおかしいように思える。
-     * 
+     *
      */
     Node searchKey(MessageSender sender, ID key, String text) throws IOException;
-
     // Node searchKey(MessageSender sender, ID key, Node start) throws IOException;
-
 
     /*
      * 読み込み用
@@ -112,13 +101,11 @@ public interface DistributedIndex {
      */
     NodeStatus[] searchData(MessageSender sender, ID[] range) throws IOException; // TODO: to algorithm (now use status command)
 
-
     /*
      * 読み込み用
      * 渡したデータノードの（たぶんラッチ）状態を返す。っぽい。
      */
     NodeStatus searchData(MessageSender sender, DataNode dataNode) throws IOException;
-
 
     /*
      * 読み込み用
@@ -126,19 +113,15 @@ public interface DistributedIndex {
      */
     NodeStatus[] searchData(MessageSender sender, DataNode[] dataNodes) throws IOException;
 
-
     /*
      * ステータスの配列のオーナーにあたるノードの（たぶんラッチ）状態をもとに戻すっぽい。
      */
     void endSearchData(MessageSender sender, NodeStatus status[]) throws IOException;
 
-
     /*
      * ステータスのオーナー(owner。@see -> NodeStatus.java definition)にあたるノードの（たぶんラッチ）状態をもとに戻すっぽい。
      */
     void endSearchData(MessageSender sender, NodeStatus status) throws IOException;
-
-
 
     /*
      * 書き込み用
@@ -146,31 +129,26 @@ public interface DistributedIndex {
      */
     Node updateKey(MessageSender sender, ID key) throws IOException;
 
-
     /*
      * 書き込み用
      * おなじくよくわからない
      */
     Node updateKey(MessageSender sender, ID key, String text) throws IOException;
 
-
     /*
      * 書き込み用
      */
     NodeStatus[] updateData(MessageSender sender, ID[] range) throws IOException; // TODO: to algorithm (now use init command)
-
 
     /*
      * 書き込み用
      */
     NodeStatus updateData(MessageSender sender, DataNode dataNode) throws IOException;
 
-
     /*
      * 書き込み用
      */
     NodeStatus[] updateData(MessageSender sender, DataNode[] dataNodes) throws IOException;
-
 
     /*
      * 書き込み終了用
@@ -178,25 +156,20 @@ public interface DistributedIndex {
      */
     void endUpdateData(MessageSender sender, NodeStatus[] status);
 
-
     /*
      * 書き込み終了用
      */
     void endUpdateData(MessageSender sender, NodeStatus status);
-
 
     /*
      * 新しく参加する計算機のためにIDを作成します。
      */
     ID[] getRangeForNew(ID id);
 
-
     /*
      * 担当範囲をスプリットして新しく分散インデクス手法を返します。
      */
     DistributedIndex splitResponsibleRange(MessageSender sender, ID[] range, ID id, NodeStatus[] status, InetSocketAddress addr);
-
-
 
     /*
      * 負荷分散のためのメソッドだったらしいです。
@@ -224,46 +197,25 @@ public interface DistributedIndex {
      */
     public InetSocketAddress getMyAddress();
 
-
-
     /*
      * アドレスをIPだけにして返します。
      */
     public String getMyAddressIPString();
 
-
-    public void startLoadBalance();
-
     /*
-     * データ容量偏り（まだできていないが、アクセス負荷）の調査及び、
-     * 負荷が大きい場合にはデータ移動
-     * そしてインデクス更新
-     * の操作を行います。
+     * 負荷分散のための処理を開始します。
      */
-   // public void checkLoad(LoadInfoTable loadInfoTable, MessageSender sender);
-   // boolean moveData(DataNode[] dataNodesToBeRemoved,InetSocketAddress target, MessageSender sender );
-
-
+    public void startLoadBalance();
 
 
     /*
      * データ移動に伴って生じるインデクス更新によって、ほかの計算機から更新情報が送られてくるので
      * それを自分のインデクスに適用します。
      */
-   // public String recieveAndUpdateDataForLoadMove(DataNode[] dataNodes, InetSocketAddress senderAddress);
+    //public String recieveAndUpdateDataForLoadMove(DataNode[] dataNodes, InetSocketAddress senderAddress);
 
+    //public String receiveUpdateInfoForLoadMove(UpdateInfoMessage uim, InetSocketAddress senderAddress);
 
-
-
-    /*
-     * moveLeftmostDataNodes
-     * moveRightmostDataNodes
-     * addPassedDataNodes
-     * のメソッドは使いません。
-     */
-    //public DataNode[] moveLeftmostDataNodes(DataNode[] dataNodesToBeRemoved, InetSocketAddress address, MessageSender sender);
-   // public DataNode[] moveRightmostDataNodes(DataNode[] dataNodesToBeRemoved, InetSocketAddress address, MessageSender sender);
-   // public void addPassedDataNodes(boolean toLeft, List<DataNode> dataNodes);
 }
 
 

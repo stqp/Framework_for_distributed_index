@@ -1,5 +1,9 @@
 package distributedIndex;
 
+import java.net.InetSocketAddress;
+
+import node.DataNode;
+
 import loadBalance.LoadInfoTable;
 
 public 	class LoadDataBox{
@@ -10,8 +14,29 @@ public 	class LoadDataBox{
 	private int myDataSize=-1;
 	private int prevDataSize=-1;
 	private int nextDataSize=-1;
-	private LoadInfoTable loadInfoTable;
-
+	private LoadInfoTable loadInfoTable = new LoadInfoTable();
+	private DataNode[] dataNodesToBeMoved = new DataNode[0];
+	private boolean isMoved=false;
+	private InetSocketAddress target= new InetSocketAddress(0);
+	
+	public boolean getIsMoved(){
+		return isMoved;
+	}
+	public void setIsMoved(boolean isMoved){
+		this.isMoved = isMoved;
+	}
+	public DataNode[] getDataNodesToBeMoved() {
+		return dataNodesToBeMoved;
+	}
+	public void setDataNodesToBeMoved(DataNode[] dataNodesToBeMoved) {
+		this.dataNodesToBeMoved = dataNodesToBeMoved;
+	}
+	public InetSocketAddress getTarget() {
+		return target;
+	}
+	public void setTarget(InetSocketAddress target) {
+		this.target = target;
+	}
 	public LoadInfoTable getLoadInfoTable(){
 		return loadInfoTable;
 	}
@@ -71,6 +96,9 @@ public 	class LoadDataBox{
 		sb.append("myDataSize:"+ myDataSize+returnChar);
 		sb.append("prevDataSize:"+ prevDataSize+returnChar);
 		sb.append("nextDataSize:"+ nextDataSize+returnChar);
+		sb.append("target to which send data:"+ target+returnChar);
+		sb.append("isMoved:"+isMoved+returnChar);
+		sb.append("number of dataNodesToBeMoved:"+dataNodesToBeMoved.length+returnChar);
 		return sb.toString();
 	}
 }

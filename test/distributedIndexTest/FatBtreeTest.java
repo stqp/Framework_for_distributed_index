@@ -30,7 +30,7 @@ public class FatBtreeTest {
 		
 		MessageSender sender = new MessageSender(null);
 		LoadInfoTable table = new FakeLoadInfoTable("test");
-		fakeFatBtree.checkLoad(table, sender);
+		fakeFatBtree.startLoadBalance();
 	}
 }
 
@@ -44,9 +44,7 @@ class FakeLoadInfoTable extends LoadInfoTable{
 		// TODO 自動生成されたコンストラクター・スタブ
 	}
 
-	@Override
 	public void reCalcAverage(){
-		this.average = 1;
 	}
 	
 }
@@ -78,9 +76,5 @@ class FakeFatBtree extends FatBtree{
 		this.leftmost = data1;
 	}
 	
-	@Override
-	public boolean moveData(DataNode[] dataNodesToBeRemoved,
-			InetSocketAddress target, MessageSender sender){
-		return false;
-	}
+
 }

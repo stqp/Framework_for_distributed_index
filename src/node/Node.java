@@ -1,10 +1,12 @@
 package node;
+import java.io.Serializable;
+
 import util.MessageSender;
 import util.NodeStatus;
 
 // Node.java
 
-public interface Node {
+public interface Node extends Serializable{
     String getName();
 
     // Node toInstance(String[] text, ID id);

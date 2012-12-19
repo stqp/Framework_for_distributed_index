@@ -11,6 +11,8 @@ import java.net.InetSocketAddress;
 import org.omg.CosNaming.NamingContextExtPackage.AddressHelper;
 
 import loadBalance.LoadInfoTable;
+import log_analyze.MyStringBuilder;
+import message.DataMessage;
 import message.LoadMessage;
 import message.UpdateInfoMessage;
 
@@ -19,7 +21,7 @@ import store.TreeNode;
 import util.AlphanumericID;
 import util.ID;
 import util.LatchUtil;
-import util.LocalStore;
+import store.LocalStore;
 import util.MessageSender;
 import util.NodeStatus;
 import util.Shell;
@@ -49,19 +51,18 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 	public PRing() {}
 
 
-	//TODO
 	public String handleMessge(InetAddress host, ID id, String[] text) {
-		
+
 		/*
 		 * 負荷分散のためのデータノードの移動に伴ってインデックスの更新情報が転送されてくる
 		 * 自分がデータ移動にかかわっている場合と
 		 * そうでない場合で処理が異なる
 		 */
 		if (text[0].equals(tagForLoadBalanceUpdateInfo)) {
-			
+
 			priJap("負荷分散のためのデータノードの移動に伴ってインデックスの更新情報が転送されてきました");
 			UpdateInfoMessage upInfoMes = UpdateInfoMessage.fromJson(removeTag(text[0], tagForLoadBalanceUpdateInfo) );
-			
+
 			//level方向（HRの縦）のループ
 			for(PRingNode pringNode: this.interNodes){
 				//order方向(HRの横)のループ
@@ -75,10 +76,10 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 					}
 				}
 			}
-			
+
 			/*
 			 * もし自分が送り主の時にはそこで更新情報の転送をやめる=何もしない
-			 * 
+			 *
 			 * 自分がデータノードの送り主でないとき
 			 * 1.更新情報を元にHRを更新（送り主の担当IDは変わらないので、受けて側の担当IDを更新する）
 			 * 2.右隣の計算機へ更新情報をさらに渡す
@@ -87,13 +88,13 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 				priJap("さらに隣へ転送します");
 				try {
 					getSender().send(
-							"message " +text[0], 
+							"message " +text[0],
 							getAddressNodeFromHR(getMiddleLevel(), 1).getAddress());
 				} catch (IOException e) {
 					e.printStackTrace();
-				} 
+				}
 			}
-			
+
 		}
 		return "";
 	}
@@ -566,7 +567,7 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 			splitedIndex.rootNode = rootNode;
 			splitedIndex.interNodes = interNodes;
 			// TODO: split fetch, easy
-			splitedIndex.store = this.store.splitResponsibleRange(range, status); 
+			splitedIndex.store = this.store.splitResponsibleRange(range, status);
 
 
 			AddressNode[] addrNodes = this.interNodes.get(0).successors;
@@ -629,7 +630,7 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 
 
 
-	@Override
+	/*@Override
 	public void checkLoad(LoadInfoTable loadInfoTable, MessageSender sender) {
 		// TODO 自動生成されたメソッド・スタブ
 
@@ -697,11 +698,11 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 			if( this.getNextMachine() != null){
 				pri("====== 右隣へ負荷情報を回します =====");
 				sender.send(
-						(new LoadMessage(this.getMyAddressIPString(), loadInfoTable)).toJson(), 
+						(new LoadMessage(this.getMyAddressIPString(), loadInfoTable)).toJson(),
 						this.getNextMachine());
 				priJap("一番遠そうな計算機へ負荷情報を回します");
 				sender.send(
-						(new LoadMessage(this.getMyAddressIPString(), loadInfoTable)).toJson(), 
+						(new LoadMessage(this.getMyAddressIPString(), loadInfoTable)).toJson(),
 						this.getAddressNodeFromHR(this.getLevel()/2, 0).getAddress());
 			}
 
@@ -714,11 +715,11 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 
 		//##### 負荷移動フェーズ #####
 
-		/*
+
 		 * この場合は負荷分散が必要ない
 		 * １．自分の負荷がある閾値より小さい
 		 * ２．自分の負荷が両隣の負荷のどちらよりも小さい
-		 */
+
 		if(myLoad < threshold || myLoad < nextLoad ){
 			//負荷集計が終わったらデータノードに蓄積したアクセス負荷の情報をリセットします。
 			resetLoadCounter();
@@ -755,7 +756,7 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 
 		//負荷集計が終わったらデータノードに蓄積したアクセス負荷の情報をリセットします。
 		resetLoadCounter();
-	}
+	}*/
 
 
 	/*
@@ -788,7 +789,7 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 	public int getLevel(){
 		return this.interNodes.size();
 	}
-	
+
 	/*
 	 * PRIngでは一番遠い計算機へ負荷情報や、更新情報を
 	 * 送りたいのでこれを使います。
@@ -798,245 +799,140 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 	}
 
 	public void sendUpdateInfoForDataNodeMove(){
-		
+
 	}
-	
-	
+
+
 	private String tagForLoadBalanceUpdateInfo = "update";
-	/*
-	 * for load balance
-	 */
-	@Override
-	public boolean moveData(DataNode[] dataNodesToBeRemoved,
-			InetSocketAddress target, MessageSender sender) {
-
-		priJap("moveData関数が呼ばれました");
-		priJap("移動するデータノードの数は");
-		pri(dataNodesToBeRemoved.length );
-		priJap("移動するデータノードそれぞれに含むキーの数は");
-		for(DataNode d: dataNodesToBeRemoved){
-			pri(d.size());
-		}
-		priJap("移動する相手のアドレスは");
-		pri(target.getAddress().toString());
-
-
-		synchronized (this) {
-			// ##### データノード移動フェーズ ######
-			priJap("データノード移動フェーズ");
-
-			try {
-				//いまはデータ移動とインデックス更新が終わると「OK」を返すようにしています。
-				sender.setHeader("LOAD_MOVE_DATA_NODES");
-				String responseMessage = sender.sendDataNodeAndReceive(dataNodesToBeRemoved, this.getMyAddress(), target);
-				priJap("データ移動終わりました。");
-				priJap("次のような返事を受け取りました");
-				pri(responseMessage);
-
-				priJap("インデックス更新フェーズ");
-				for(DataNode dn : dataNodesToBeRemoved){
-					/*
-					 * 目的のデータノードに対して
-					 * 1.左右のデータノードからの参照と
-					 * 2.親から参照を取り除く
-					 */
-					if(dn.getPrev() != null){ dn.getPrev().setNext(null);}//左からの参照削除
-					if(dn.getNext() != null){ dn.getNext().setPrev(null);}//右からの参照削除
-					//親からの参照削除します
-					TreeNode parent = (TreeNode) dn.getParent();
-					Node[] newChildren = new Node[parent.children.length-1];//親の子供を新しい子供に置き換えます
-					for(int i=0,j=0;i < parent.children.length;i++){
-						//目的のデータノードはコピーしないでとばす。
-						if(parent.children[i] == dn){
-							//do nothing
-						}else{
-							newChildren[j] = parent.children[i];
-							j++;
-						}
-					}
-					//親から子への参照を取り除く
-					parent.children = newChildren;
-
-					/*
-					 * データノードからデータを取り出して
-					 * それを他の計算機に転送するのは面倒くさいので
-					 * とりあえずやりません。
-					 */
-					//データベースからすべてのデータを取り除きます。
-					/*for(ID id : dn.getAll()){
-						DBConnector.remove(id.toString());
-					}*/
-				}
-				
-				
-
-				/*
-				 * HRを検索して移動に関わった計算機の担当範囲を更新する	
-				 * 一番左端のノードを移動するときを除いて、自分の担当範囲は変わらない。
-				 * 
-				 * PRingでは右端のデータノードから順番に右側の計算機へと移動させるので、左端のデータノードを
-				 * 移動するときはデータノードがなくなってしまう。
-				 * そのような場合は起こらないはず（起こらないようにしなくてはいけない）だから、送り手が自分の担当範囲を更新する
-				 * ことはない。
-				 */
-				//level方向（HRの縦）のループ
-				for(PRingNode pringNode: this.interNodes){
-					//order方向(HRの横)のループ
-					for(AddressNode addrNode : pringNode.successors){
-						//PRing用のアドレスノードクラスに変換して使いやすくします。
-						PRingAddressNode paddrNode = (PRingAddressNode)addrNode;
-
-						//HRから移動先の計算機をみつけたときは担当を更新する
-						if(paddrNode.getAddress().toString().equals(target.toString())){
-							paddrNode.setIDByString(dataNodesToBeRemoved[0].getMinID().toString());
-						}
-					}
-				}
-
-
-				/*
-				 * ほかの計算機へ更新情報を送る
-				 */
-				//TODO
-				//一番遠そうな計算機へ送る
-				sender.send(
-						"message "+ tagForLoadBalanceUpdateInfo +(new UpdateInfoMessage(getMyAddress(), 
-														  getNextMachine(), 
-														  this.id.toString(), 
-														  dataNodesToBeRemoved[0].getMinID().toString())).toJson(), 
-						getAddressNodeFromHR(getMiddleLevel(), 1).getAddress()); 
-				//２つ右隣の計算機へ送る
-				sender.send(
-						"message "+ tagForLoadBalanceUpdateInfo +(new UpdateInfoMessage(getMyAddress(), 
-														  getNextMachine(), 
-														  this.id.toString(), 
-														  dataNodesToBeRemoved[0].getMinID().toString())).toJson(), 
-						getAddressNodeFromHR(1, 2).getAddress()); 
-
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-
-		}
-		return false;
-	}
-
 	
-	private void updateIndex(DataNode[] dataNodesToBeRemoved,
+
+
+	/*private void updateIndex(DataNode[] dataNodesToBeRemoved,
 			InetSocketAddress target) {
 		priJap("インデックス更新フェーズ");
-		
+
 		for(DataNode dn : dataNodesToBeRemoved){
-			/*
+
 			 * 目的のデータノードに対して
 			 * 1.左右のデータノードからの参照と
 			 * 2.親から参照を取り除く
-			 */
+
 			//if(dn.getPrev() != null){ dn.getPrev().setNext(null);}//左からの参照削除
 			//if(dn.getNext() != null){ dn.getNext().setPrev(null);}//右からの参照削除
 			//親からの参照削除します
 			TreeNode parent = (TreeNode) dn.getParent();
-			
+
 			parent.removeDataNode(dn);
-			
-			
-			
+
+
+
 			priJap("START REMOVE CHILD FROM PARENT");
 			priJap("INFOMATION OF PARENT NODE OF TARGET DATANODE");
 			pri("CHILDREN SIZE IS");
 			pri(parent.getChildrenSize());
-			
+
 			priJap("DATA_NODE_INFO: START");
 			pri("DATA_NODE_INFO: TO_MESSAGE");
 			pri(dn.toMessage());
 			pri("DATA-NODE-MIN-ID:");
 			pri(dn.getMinID().toString());
 			priJap("DATA_NODE_INFO: END");
-			
-			
-			
-			
+
+
+
+
 			priJap("END REMOVE CHILD FROM PARENT");
-			
-			
+
+
 		}
-		
+
 	}
+*/
+	
+
 
 	@Override
-	public String recieveAndUpdateDataForLoadMove(DataNode[] dataNodes,
-			InetSocketAddress senderAddress) {
-		priJap("recieveAndUpdateDataForLoadMove関数が呼ばれました");
-		priJap("受け取ったデータノードの数は");
-		pri(dataNodes.length);
-		priJap("受け取ったデータノードに含まれるキーの数はそれぞれ");
-		for(DataNode d : dataNodes){
-			pri(d.size());
+	public String fromStatusToString() {
+		// TODO 自動生成されたメソッド・スタブ
+		pri("fromStatusToString");
+		MyStringBuilder mst = new MyStringBuilder("");
+		mst.appendWithReturn("level:"+ getLevel());
+		mst.appendWithReturn("middle level:"+getMiddleLevel());
+		PRingNode prn = this.rootNode;
+		for(int level=getLevel()-1; level>=0&& prn!=null;level--){
+			mst.appendWithReturn("current level:"+ level);
+			for(int i_order=0;i_order<prn.successors.length;i_order++){
+				mst.appendWithReturn("getAddressNodeFromHR:"+ getAddressNodeFromHR(level, i_order));
+				try{
+					mst.appendWithReturn("address : "+ prn.successors[i_order].getAddress().toString());
+				}catch(Exception e){
+					mst.appendWithReturn("fail to get address from HR. level:"+level+" i_order:"+i_order);
+				}
+				
+			}
+			prn= prn.childNode;
 		}
-		priJap("データの送り主のアドレスは");
-		pri(senderAddress.getAddress().toString());
-
 		
-		/*
-		 * PRingではデータノードを受け取った側は自分の担当範囲を更新するだけでよい。
-		 * HRには自分の情報はないので更新する必要はない。
-		 * 
-		 * データノード間や、その親ノードなどとのリンク作成処理は
-		 * このフレームワークに依存する処理で手法とは関係ない。
-		 */
-		synchronized (this) {
-			priJap("インデックス更新開始");
-			priJap("左からデータノードを受け取りました");
-
-			TreeLocalStore store = ((TreeLocalStore)this.store);
-			TreeNode parent = (TreeNode)store.getFirstDataNode().getParent();
-			
-			//追加するデータノード間の参照を作る。親ノードへの参照を作る
-			for(int i=0;i<dataNodes.length ; i++){
-				dataNodes[i].setParent(parent);
-				if(i==0){
-					dataNodes[i].setNext(dataNodes[i+1]);
-				}else if(i== dataNodes.length-1){
-					dataNodes[i].setPrev(dataNodes[i-1]);
-				}else{
-					dataNodes[i].setNext(dataNodes[i+1]);
-					dataNodes[i].setPrev(dataNodes[i-1]);
-				}
-			}
-			//インデックス手法からの参照を作る
-			store.setFirstDataNode(dataNodes[0]);
-			//親ノードの左橋のデータノードへの参照を作る
-			for(int i=0; i< parent.children.length;i++){
-				if(parent.children[i] instanceof DataNode){
-					dataNodes[dataNodes.length-1].setNext((DataNode)parent.children[i]);
-					((DataNode)parent.children[i]).setPrev(dataNodes[dataNodes.length-1]);
-					break;
-				}
-			}
-			
-			//親ノードからの参照を作る。
-			Node[] newChildren = new Node[parent.children.length+dataNodes.length];//親の子供を新しい子供に置き換えます
-			//iはnewChildrenのインデックス用。jはparent.childrenのインデックス用。
-			for(int i=0,j=0;i < parent.children.length;i++){
-				if(i < dataNodes.length){
-					newChildren[i] = dataNodes[i];
-				}else{
-					newChildren[i] = parent.children[j];
-					j++;
-				}
-			}
-			parent.children = newChildren;
-			
-			/*
-			 * 受け手が左側からデータを受けとった時は
-			 * 自分の担当範囲を更新する
-			 */
-			this.id = this.getFirstDataNode().getMinID();
-		}
+		return null;
+	}
 
 
-		pri("テスト用に「OK」を返します");
-		return "OK";
+	protected LoadDataBox checkLoad(LoadInfoTable loadInfoTable,
+			MessageSender sender) {
+		// TODO 自動生成されたメソッド・スタブ
+		return null;
+	}
+
+
+	protected boolean sendLoadInfo(LoadDataBox ldb, MessageSender sender) {
+		// TODO 自動生成されたメソッド・スタブ
+		return false;
+	}
+
+
+	@Override
+	protected LoadDataBox moveData(LoadDataBox ldb) {
+		// TODO 自動生成されたメソッド・スタブ
+		return null;
+	}
+
+
+	@Override
+	protected void updateIndex(DataNode[] dataNodesToBeRemoved,
+			InetSocketAddress target) {
+		// TODO 自動生成されたメソッド・スタブ
+
+	}
+
+
+	/*@Override
+	public String receiveUpdateInfoForLoadMove(UpdateInfoMessage uim,
+			InetSocketAddress senderAddress) {
+		// TODO 自動生成されたメソッド・スタブ
+		return null;
+	}*/
+
+
+	@Override
+	protected boolean sendLoadInfo(LoadDataBox loadDataBox,
+			LoadInfoTable loadInfoTable, MessageSender sender) {
+		// TODO 自動生成されたメソッド・スタブ
+		return false;
+	}
+
+
+	@Override
+	protected String updateIndexWhenReceivingData(DataMessage dataMessage) {
+		// TODO 自動生成されたメソッド・スタブ
+		return null;
+	}
+
+
+	@Override
+	protected String updateIndexWhenReceivingUpdateInfo(
+			UpdateInfoMessage updateInfoMessage) {
+		// TODO 自動生成されたメソッド・スタブ
+		return null;
 	}
 
 }

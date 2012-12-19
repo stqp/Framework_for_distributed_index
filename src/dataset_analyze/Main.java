@@ -38,9 +38,9 @@ public class Main extends MyUtil{
 	 * 現在担当範囲はこの値で指定している
 	 */
 	public static AlphanumericID range0 = new AlphanumericID("user1000053778378872380");
-	public static AlphanumericID range1 = new AlphanumericID("user1173737695004966866");
-	public static AlphanumericID range2 = new AlphanumericID("user7142835197696697420");
-	public static AlphanumericID range3 = new AlphanumericID("user7219633036887726303");
+	public static AlphanumericID range1 = new AlphanumericID("user7073737695004966866");
+	public static AlphanumericID range2 = new AlphanumericID("user8142835197696697420");
+	public static AlphanumericID range3 = new AlphanumericID("user9099933036887726303");
 
 	
 	
@@ -96,7 +96,6 @@ public class Main extends MyUtil{
 	 * 今後必要ないメソッド。
 	 * 使ってないから消してもよいよ。
 	 */
-
 	private static String makeFileName(String year, String month, String day){
 		String FILE_NAME_PREFIX = "log";
 		String FILE_NAME_SUFFIX = ".txt";

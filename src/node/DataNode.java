@@ -24,30 +24,30 @@ public class DataNode implements Node {
 	private ID[] range;
 	private DataNode prev;
 	private DataNode next;
-	
-	
+
+
 	/*
 	 * データノードへのアクセス負荷を蓄積する変数
 	 */
 	private int readCounter = 0;
 	private int writeCounter = 0;
-	
+
 	/*
 	 * 読み込みと書き込みの重みを付ける
 	 */
 	private static int readWeight = 1;
 	private static int writeWeight = 2;
-	
+
 	public int getLoad(){
 		return readCounter*readWeight + writeCounter*writeWeight;
 	}
-	
+
 	public void resetLoadCounter(){
 		this.writeCounter = 0;
 		this.readCounter = 0;
 	}
-	
-	
+
+
 	/*
 	 * ここで返すサイズを切り替えることで
 	 * 容量負荷もしくはアクセス負荷を簡単に変えることができる
@@ -55,16 +55,16 @@ public class DataNode implements Node {
 	public int size() {
 		return this.idList.size();
 	}
-	
+
 	public void incrementReadCount(){
 		this.readCounter++;
 	}
-	
+
 	public void incrementWriteCount(){
 		this.writeCounter++;
 	}
-	
-	
+
+
 
 
 	private int[] status;
@@ -89,15 +89,15 @@ public class DataNode implements Node {
 		this.status = LatchUtil.newLatch();
 	}
 
-	
-	
-	
+
+
+
 	/*
 	 * データノードの等しい条件
 	 */
 	public boolean equals(Object o){
 		if(o == null){return false;}
-		
+
 		if(o instanceof DataNode){
 			if(((DataNode) o).getMinID().compareTo(this.getMinID())==0
 					&& ((DataNode) o).getMaxID().compareTo(this.getMaxID())==0){
@@ -106,8 +106,8 @@ public class DataNode implements Node {
 		}
 		return false;
 	}
-	
-	
+
+
 	/*
 	 * text
 	 * by tokuda
@@ -120,12 +120,12 @@ public class DataNode implements Node {
 		return dataNode;
 	}
 
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
 	public String toMessage() {
 		StringBuilder sb = new StringBuilder();
 		for (ID id: this.idList) {
@@ -163,7 +163,7 @@ public class DataNode implements Node {
 		return new NodeStatus(this, LatchUtil.S);
 	}
 
-	
+
 	// note: need exclusion access control
 	public void endSearchData(NodeStatus status) {
 		synchronized (this.status) {
@@ -216,7 +216,17 @@ public class DataNode implements Node {
 		}
 		return res;
 	}
-	
+
+
+	public boolean remove(MessageSender sender, ID id){
+		boolean res = this.idList.remove(id);
+		if (res) {
+			this.parent.ackUpdate(sender, this);
+		}
+		return res;
+	}
+
+
 	public boolean add(ID id) {
 		//this.incrementWriteCount();
 		boolean res = this.idList.add(id);
@@ -236,21 +246,13 @@ public class DataNode implements Node {
 		return this.idList.contains(id);
 	}
 
-	public boolean remove(MessageSender sender, ID id) {
-		boolean res = this.idList.remove(id);
-		if (res) {
-			this.parent.ackUpdate(sender, this);
-		}
-		return res;
-	}
 
-	
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
 	public DataNode split() {
 		ID[] idArray = this.getSortedArray();
 		int center = idArray.length / 2;
@@ -263,10 +265,10 @@ public class DataNode implements Node {
 		dataNode.idList = new ArrayList<ID>(java.util.Arrays.asList(last));
 
 		this.next = dataNode;
-		
+
 		dataNode.readCounter = this.readCounter/2;
 		this.readCounter = this.readCounter/2;
-		
+
 		dataNode.writeCounter = this.writeCounter/2;
 		this.writeCounter = this.writeCounter/2;
 

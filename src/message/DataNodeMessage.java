@@ -14,19 +14,19 @@ import node.DataNode;
 
 import com.google.gson.Gson;
 
-public class DataNodeMessage implements Serializable{
-	
+public class DataNodeMessage extends AbstractMessage implements Serializable{
+
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 
 	private InetSocketAddress sender;
 
 	private ArrayList<String> keyList;
-	
-	
-	
+
+
+
 	public DataNodeMessage(){
 
 	}
@@ -36,24 +36,20 @@ public class DataNodeMessage implements Serializable{
 		this.keyList = this.toStringFromDataNodes(dataNodesToBeRemoved);
 	}
 
-	
-	
+
+
 	public InetSocketAddress getSenderAddress(){
 		return sender;
 	}
 
-	
+
 	public DataNode[] getDataNodes(){
 		return this.toDataNodesFromArrayList();
 	}
-	
-	
-	public String toJson(){
-		Gson gson = new Gson();
-		return gson.toJson(this);
-	}
-	
-	
+
+
+
+
 	/*
 	 * DataNodeクラスはインターフェースを保持しているのでgsonがうまくjsonから復元できません。
 	 * そこでこのクラスがDataNodeをラップします。
@@ -69,7 +65,7 @@ public class DataNodeMessage implements Serializable{
 		}
 		return arr;
 	}
-	
+
 	private DataNode[] toDataNodesFromArrayList(){
 		List<DataNode> dataNodes = new ArrayList<DataNode>();
 		DataNode dataNode = new DataNode();
@@ -87,6 +83,6 @@ public class DataNodeMessage implements Serializable{
 		}
 		return (DataNode[])dataNodes.toArray(new DataNode[0]);
 	}
-	
+
 
 }

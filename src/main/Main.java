@@ -2,7 +2,11 @@ package main;
 // Main.java
 
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintStream;
 
 import java.util.List;
@@ -61,7 +65,7 @@ public final class Main {
 
 	public static PreparedStatement createGetStatement() throws SQLException {
 		return DBConnector.createGetStatement();
-//		return Main.connection.prepareStatement("SELECT value FROM data WHERE key = ?");
+		//		return Main.connection.prepareStatement("SELECT value FROM data WHERE key = ?");
 	}
 
 	public static PreparedStatement createRangeStatement() throws SQLException {
@@ -100,6 +104,7 @@ public final class Main {
 
 	public void start(String[] args) {
 
+
 		if (args.length != 4) {
 			System.err.println("args: method_class id_class port seed");
 			System.exit(1);
@@ -135,7 +140,7 @@ public final class Main {
 			Class.forName("org.postgresql.Driver");
 			connection = new DBConnector(JDBC_URL, JDBC_USER, JDBC_PASSWORD).connect();
 			//connection = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
-			
+
 
 		} catch (SQLException e) {
 			System.out.println("error : cannot connect to SQL");
@@ -173,16 +178,16 @@ public final class Main {
 		/*
 		 *
 		 */
-	
+
 		final int loadCheckInterval = 5000;
 		System.out.println("NEW LoacChecker here");
 		LoadChecker loadChecker = new LoadChecker(loadCheckInterval,distIndex, handler.getMessageReceiver());
 		Thread loadCheckerThread = new Thread( loadChecker );
 		loadCheckerThread.setDaemon(true);
 		loadCheckerThread.start();
-		
+
 		handler.setLoadChecker(loadChecker);
-		
+
 		/*
 		 * start ???
 		 */
@@ -190,7 +195,7 @@ public final class Main {
 		stdioShell.run();
 
 
-		
+
 
 
 
@@ -338,22 +343,22 @@ public final class Main {
 			System.exit(1);
 		}
 
-		*//**
-		 * 分散インデックスの名前
-		 * FatBtree or PRing or SkipGraph
-		 *//*
+ *//**
+ * 分散インデックスの名前
+ * FatBtree or PRing or SkipGraph
+ *//*
 		DistributedIndex distIndex = null;
 
 		ID id = null;
 
-		*//**
-		 * port number
-		 *//*
+  *//**
+  * port number
+  *//*
 		int port = 0;
 
-		*//**
-		 * an argument for function which make random number.
-		 *//*
+   *//**
+   * an argument for function which make random number.
+   *//*
 		int seed = 0;
 
 
@@ -399,4 +404,4 @@ public final class Main {
 		}
 	}
 }
-*/
+    */

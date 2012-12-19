@@ -14,7 +14,7 @@ import store.TreeNode;
 import util.DBConnector;
 import util.ID;
 import util.LatchUtil;
-import util.LocalStore;
+import store.LocalStore;
 import util.MessageSender;
 import util.NodeStatus;
 import util.Shell;
@@ -22,34 +22,29 @@ import util.Shell;
 import loadBalance.LoadInfoTable;
 import log_analyze.AnalyzerManager;
 import main.Main;
+import message.DataMessage;
 import message.LoadMessage;
+import message.UpdateInfoMessage;
 import node.AddressNode;
 import node.DataNode;
 import node.Node;
 
-public class SkipGraph extends AbstractDoubleLinkDistributedIndex implements DistributedIndex {
-
+public class SkipGraph extends AbstractDoubleLinkDistributedIndex  {
 
 	private static final String NAME = "SkipGraph";
 	public String getName() {return NAME;}
-
 	private final static int MAX_LEVEL = 5;
 	private final static int MV_LENGTH = 8;
-
 	private ID id;
 	private SkipGraphNode rootNode;
 	private SkipGraphNode[] interNodes;
 	private int[] m;
-	// private boolean deleteFlag;
-
 	private LocalStore store;
 
+
 	public SkipGraph() {}
-
 	public boolean adjustCmd(MessageSender sender) {return true;}
-
 	public String getAdjustCmdInfo() {return "";}
-
 	public String handleMessge(InetAddress host, ID id, String[] text) {
 		return "";
 	}
@@ -70,8 +65,6 @@ public class SkipGraph extends AbstractDoubleLinkDistributedIndex implements Dis
 				int r = Main.random.nextInt(2);
 				this.m[i] = r;
 			}
-			// this.deleteFlag = false;
-
 			this.store = new TreeLocalStore();
 		}
 	}
@@ -91,7 +84,6 @@ public class SkipGraph extends AbstractDoubleLinkDistributedIndex implements Dis
 				this.interNodes[0].neighborR = new AddressNode(addr, "0");
 			}
 			this.m = distIndex.m;
-			// this.deleteFlag = deleteFlag;
 			this.store = distIndex.store;
 		}
 	}
@@ -225,6 +217,8 @@ public class SkipGraph extends AbstractDoubleLinkDistributedIndex implements Dis
 		return new AddressNode(null, start + ":" + (level - 1));
 	}
 
+
+
 	public InetSocketAddress[] getAckMachine() {
 		ArrayList<InetSocketAddress> addrs = new ArrayList<InetSocketAddress>();
 		InetSocketAddress addr = this.interNodes[0].neighborL.getAddress();
@@ -312,7 +306,7 @@ public class SkipGraph extends AbstractDoubleLinkDistributedIndex implements Dis
 				}
 				else {
 					String res = sender.sendAndReceive(msg, addr);
-					System.err.println("MESSAGE status id");
+					//System.err.println("MESSAGE status id");
 					/*
 					 * resは問い合わせ先のIDのString。
 					 * getID(String)はファクトリメソッドで、
@@ -360,7 +354,7 @@ public class SkipGraph extends AbstractDoubleLinkDistributedIndex implements Dis
 				}
 				else {
 					String res = sender.sendAndReceive(msg, addr);
-					System.err.println("MESSAGE status id");
+					//System.err.println("MESSAGE status id");
 					resId = this.id.getID(res);
 					lastAddr = addr;
 					lastId = resId;
@@ -461,7 +455,7 @@ public class SkipGraph extends AbstractDoubleLinkDistributedIndex implements Dis
 				}
 				else {
 					String res = sender.sendAndReceive(msg, addr);
-					System.err.println("MESSAGE status id");
+					//System.err.println("MESSAGE status id");
 					resId = this.id.getID(res);
 					lastAddr = addr;
 					lastId = resId;
@@ -498,7 +492,7 @@ public class SkipGraph extends AbstractDoubleLinkDistributedIndex implements Dis
 				}
 				else {
 					String res = sender.sendAndReceive(msg, addr);
-					System.err.println("MESSAGE status id");
+					//System.err.println("MESSAGE status id");
 					resId = this.id.getID(res);
 					lastAddr = addr;
 					lastId = resId;
@@ -520,7 +514,6 @@ public class SkipGraph extends AbstractDoubleLinkDistributedIndex implements Dis
 	}
 
 	public NodeStatus[] updateData(MessageSender sender, ID[] range) {
-		// System.err.println("DEPLICATE SkipGraph#updateData(ID[])");
 		ArrayList<NodeStatus> status = new ArrayList<NodeStatus>();
 		DataNode node = null;
 		if (range[0] == null) {
@@ -628,323 +621,34 @@ public class SkipGraph extends AbstractDoubleLinkDistributedIndex implements Dis
 
 
 
-	/*private String getPrevMachineIPString(){
-		if(this.getPrevMachine() == null){
-			return "";
-		}
-		String address = this.getPrevMachine().getAddress().toString();
-		return address.substring(address.indexOf('/'));
-	}
-*/
-
-
-
-
-
 
 	/*
 	 * TODO
 	 * データベースのデータを削除していないので、
 	 * 時間が余ったらそこまでやります。
-	 * 
+	 *
 	 * DBConnector を分散手法側から使うようにすればよい思います。
-	 * 
-	 * @see distributedIndex.DistributedIndex#checkLoad(loadBalance.LoadInfoTable, util.MessageSender)
+	 *
 	 */
-	
-	private int count = 0;
-
-	/*@Override
-	public void checkLoad(LoadInfoTable loadInfoTable, MessageSender sender) {
-
-		// ##### 時間測定用変数 #####
-		long checkStartTime_msec = getCurrentTime();
-		Long moveStartTime_msec;
-		Long updateStartTime_msec;
-		Long checkEndTime_msec;
-		// ##### /時間測定用変数 #####
-
-
-
-		pri("##### 負荷集計フェーズ #####");
-		int prevLoad = -1;
-		int nextLoad = -1;
-		//もしまだ1つ前の計算機の負荷が登録されていなければそっちにデータ移動はできないよね
-		//1つ後の計算機に関しても同様。
-		//そのためのチェックをしているだけだが、長くなってしまった。
-		//nullかどうか調べておかないとすぐエラーになってしまうので。
-		if(this.getPrevMachine() != null && loadInfoTable != null && loadInfoTable.getLoadList() != null
-				&& loadInfoTable.getLoadList().get(this.getPrevMachineIPString()) != null){
-			//priJap("前の計算機の負荷を取得できました");
-			prevLoad = loadInfoTable.getLoadList().get(this.getPrevMachineIPString());
-		}
-
-		if(this.getNextMachine() != null && loadInfoTable.getLoadList() != null
-				&& loadInfoTable.getLoadList().get(this.getNextMachineIPString()) != null){
-			//priJap("後の計算機の負荷を取得できました");
-			nextLoad = loadInfoTable.getLoadList().get(this.getNextMachineIPString());
-		}
-
-
-		//負荷を集計するときに左端と右端のデータノードを格納しておきます。後で使うので便利です。
-		//DataNode leftMostDataNode = this.getFirstDataNode();
-		DataNode rightMostDataNode = this.getFirstDataNode();
-		int myLoad = 0;
-		int myDataSize = 0;
-
-
-		pri("====== 負荷を集計 ======");
-		synchronized (this) {
-			DataNode dataNode = getFirstDataNode();
-			while(dataNode != null){
-				myLoad += dataNode.getLoad();
-				myDataSize += dataNode.size();
-				rightMostDataNode = dataNode;
-				dataNode = dataNode.getNext();
-			}
-		}
-		pri("====== /負荷を集計 ======");
-
-
-		pri("====== 自分の負荷更新と負荷平均値を再計算 ======");
-		loadInfoTable.setLoad(this.getMyAddressIPString(), myLoad);
-		loadInfoTable.setDataSize(this.getMyAddressIPString(), myDataSize);
-		loadInfoTable.reCalcAverage();
-		pri("====== /自分の負荷更新と負荷平均値を再計算 ======");
-
-
-		//データ更新された後に平均値を取得するという順番に注意！
-		int average = loadInfoTable.getAverage();
-		int threshold = (int) (average * errorRangeRate);
-		pri("##### /負荷集計フェーズ #####");
-
-
-
-		// ##### 計算機の状態をログに出力 #####
-		pri("LOAD_INFO_TABLE_TOJSON :"+loadInfoTable.toJson());
-		pri("My address:" + this.getMyAddressIPString());
-		pri("getPrevMachineIP : " + this.getPrevMachineIPString());
-		pri("getNextMachineIP : "+ this.getNextMachineIPString());
-		pri("myLoad : "+ myLoad);
-		pri("prevLoad : " + prevLoad);
-		pri("nextLoad : " + nextLoad);
-		pri("threshold : "+ threshold);
-		int prevDataSize=0;
-		int nextDataSize=0;
-		try{
-			prevDataSize = loadInfoTable.getDataSizeList().get(this.getPrevMachineIPString());
-		}catch(Exception e){}
-		try{
-			nextDataSize = loadInfoTable.getDataSizeList().get(this.getNextMachineIPString());
-		}catch(Exception e){}
-		pri("myDataSize : "+ myDataSize);
-		pri("prevDataSize : " + prevDataSize);
-		pri("nextDataSize : " + nextDataSize);
-		// ##### /計算機の状態をログに出力 #####
-
-
-
-
-
-		//アクセス負荷とデータ容量をログに出力
-		log( AnalyzerManager.getLogLoadTag()
-				+" "+checkStartTime_msec
-				+" "+myLoad
-				+" "+myDataSize
-				+" "+threshold
-				+" "+prevLoad
-				+" "+nextLoad);
-
-
-
-
-		pri(" ##### 負荷転送フェーズ  ##### ");
-		try {
-			sender.setHeader("LOAD_INFO");
-			if( this.getPrevMachine() != null){
-				pri("====== 左隣へ負荷情報を回します =====");
-				sender.send((new LoadMessage(this.getMyAddressIPString(), loadInfoTable)).toJson(), this.getPrevMachine());
-			}
-			if( this.getNextMachine() != null){
-				pri("====== 右隣へ負荷情報を回します =====");
-				sender.send((new LoadMessage(this.getMyAddressIPString(), loadInfoTable)).toJson(), this.getNextMachine());
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		pri("##### /負荷転送フェーズ  #####");
-
-
-
-		//負荷集計かつ負荷転送フェーズ終わりと負荷移動フェーズの始まり
-		moveStartTime_msec = getCurrentTime();
-
-
-
-		pri(" ##### 負荷移動フェーズ #####");
-		
-		 * 以下の場合は負荷分散が必要ない
-		 * １．自分の負荷がある閾値より小さい
-		 * ２．自分の負荷が両隣の負荷のどちらよりも小さい（どちらにも負荷が取得できるとき）
-		 
-		if(myLoad <= threshold 
-				|| (prevLoad>=0 && nextLoad>=0 && myLoad<=prevLoad && myLoad<=nextLoad)){
-			pri(" ##### /負荷移動フェーズ #####");
-			//負荷集計が終わったらデータノードに蓄積したアクセス負荷の情報をリセットします。
-			resetLoadCounter();
-			moveStartTime_msec = getCurrentTime();
-			updateStartTime_msec = getCurrentTime();
-			checkEndTime_msec = getCurrentTime();
-			//負荷転送フェーズにかかった時間
-			log("LOG-LOADBLANCE-CHECKLOAD-TIME"
-					+" "+checkStartTime_msec
-					+" "+(moveStartTime_msec-checkStartTime_msec)
-					+" "+(updateStartTime_msec-moveStartTime_msec)
-					+" "+(checkEndTime_msec-updateStartTime_msec));
-			return ;
-		}
-
-		priJap("負荷分散のためにデータノードを移動します。");
-		ArrayList<DataNode> dataNodeToBeMoved = new ArrayList<DataNode>();
-		InetSocketAddress target = null;
-		int tempLoadCount = 0;
-		int tempDataCount = 0;
-
-		synchronized (this) {
-
-			//前と後のどちらにデータを移動するか決定する
-			if(myLoad > prevLoad && prevLoad>=0){
-				priJap("前の計算機へデータを送ります");
-				
-				 * 次の場合は移動するデータノードの探索を終了し移動に移ります。
-				 * １．データノード移動あとの負荷が閾値より小さい
-				 * ２．移動可能なデータ数（データ数＝データノードに格納されているID数）を超えた
-				 
-				DataNode dataNode = this.getFirstDataNode();
-				while( true  ){
-					if(		(myLoad - (tempLoadCount + dataNode.getLoad())) <= threshold
-							//|| maxDataSizeCanBeMoved <= (tempDataCount + dataNode.size())
-							|| (myLoad -(tempLoadCount + dataNode.getLoad()) <= prevLoad )){
-						break;
-					}
-					tempDataCount += dataNode.size();
-					tempLoadCount += dataNode.getLoad();
-					dataNodeToBeMoved.add(dataNode);
-					dataNode = dataNode.getNext();
-				}
-				if(dataNodeToBeMoved.size() > 0){
-					target = this.getPrevMachine();
-				}
-			}
-			else if(myLoad > nextLoad && nextLoad>=0){
-				priJap("次の計算機にデータを送ります");
-				DataNode dataNode = rightMostDataNode;
-				while( true  ){
-					if( ( myLoad - (tempLoadCount + dataNode.getLoad()) ) <= threshold
-							//|| maxDataSizeCanBeMoved <= (tempDataCount + dataNode.size())
-							|| (myLoad -(tempLoadCount + dataNode.getLoad()) <= nextLoad) ){
-						break;
-					}
-					tempDataCount += dataNode.size();
-					tempLoadCount += dataNode.getLoad();
-					dataNodeToBeMoved.add(dataNode);
-					dataNode = dataNode.getPrev();
-				}
-				if(dataNodeToBeMoved.size() > 0){
-					target = this.getNextMachine();
-				}
-			}
-			
-			//転送するデータノードが決まったら、データノードに蓄積したアクセス負荷の情報をリセットします。
-			//でないと、アクセス数がのこったまま転送されます。
-			resetLoadCounter();
-			
-			
-			boolean isMoved= false;
-			if(target!=null){
-				//実際にデータ転送が行われるのはここ
-				isMoved = moveData((DataNode[])dataNodeToBeMoved.toArray(new DataNode[0]),target , sender);
-			}
-			pri(" ##### /負荷移動フェーズ #####");
-
-
-			//負荷移動フェーズの終わりとインデックス更新フェーズの始まり
-			updateStartTime_msec = getCurrentTime();
-			if(isMoved==true){
-				pri(" ##### インデックス更新フェーズ ##### ");
-				updateIndex((DataNode[])dataNodeToBeMoved.toArray(new DataNode[0]), target);
-				pri(" ##### /インデックス更新フェーズ ##### ");
-			}
-		}
-
-
-		checkEndTime_msec = getCurrentTime();
-		//負荷転送フェーズにかかった時間
-		log("LOG-LOADBLANCE-CHECKLOAD-TIME"
-				+" "+checkStartTime_msec
-				+" "+(moveStartTime_msec-checkStartTime_msec)
-				+" "+(updateStartTime_msec-moveStartTime_msec)
-				+" "+(checkEndTime_msec-updateStartTime_msec));
-	}
-*/
-	
-
-	/*@Override
-	public boolean moveData(DataNode[] dataNodesToBeRemoved,
-			InetSocketAddress target, MessageSender sender) {
-		priJap("moveData関数が呼ばれました");
-		priJap("移動するデータノードの数は");
-		pri(dataNodesToBeRemoved.length );
-		priJap("移動するデータノードそれぞれに含むキーの数は");
-		for(DataNode d: dataNodesToBeRemoved){
-			pri(d.size());
-		}
-		priJap("移動する相手のアドレスは");
-		pri(target.getAddress().toString());
-
-		synchronized (this) {
-			priJap("データノード移動フェーズ");
-			try {
-				//いまはデータ移動とインデックス更新が終わると「OK」を返すようにしています。
-				sender.setHeader("LOAD_MOVE_DATA_NODES");
-				String responseMessage = sender.sendDataNodeAndReceive(dataNodesToBeRemoved, this.getMyAddress(), target);
-				priJap("データ移動終わりました。");
-				priJap("次のような返事を受け取りました");
-				pri(responseMessage);
-				if(responseMessage.equals("OK")){
-					return true;
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		return false;
-	}*/
-
-
-
-	private void updateIndex(DataNode[] dataNodesToBeRemoved,
+	synchronized protected void updateIndex(
+			DataNode[] dataNodesToBeRemoved,
 			InetSocketAddress target) {
-		priJap("METHOD : UPDATEINDEX");
-		pri("before total data size:");
-		pri(getTotalDataSizeByB_link());
-		
 		/*
 		 * 送り手が左側に送る時は自分の担当IDを更新する
 		 * 右側に送る時は何もしない。
 		 */
-		if(this.getPrevMachine().equals(target)){
+		if(getPrevMachine()!=null&& getPrevMachine().equals(target)){
 			pri("this.getPrevMachine().equals(target) is true");
 		}
-		if(dataNodesToBeRemoved[0].equals(this.getFirstDataNode())){
+		if(dataNodesToBeRemoved[0].equals(getFirstDataNode())){
 			pri("dataNodesToBeRemoved[0].equals(this.getFirstDataNode())");
 		}
-		if(equalsAddress(target, this.getPrevMachine())){
+		if(equalsAddress(target, getPrevMachine())){
 			pri("equalsAddress(target, this.getPrevMachine())");
 		}
-		if(this.getPrevMachine().equals(target) 
-				|| dataNodesToBeRemoved[0].equals(this.getFirstDataNode()) //たぶん3つのうち２番目、３番目のチェックは必要ない
-				|| equalsAddress(target, this.getPrevMachine())){
+		if((getPrevMachine()!=null&& getPrevMachine().equals(target))
+				|| dataNodesToBeRemoved[0].equals(getFirstDataNode()) //たぶん3つのうち２番目、３番目のチェックは必要ない
+				|| equalsAddress(target, getPrevMachine())){
 			pri("before responsible range minid:");
 			pri(this.id.toString());
 			((TreeLocalStore)this.store).setLeftmost(dataNodesToBeRemoved[dataNodesToBeRemoved.length-1].getNext());
@@ -952,124 +656,196 @@ public class SkipGraph extends AbstractDoubleLinkDistributedIndex implements Dis
 			pri("before responsible range minid:");
 			pri(this.id.toString());
 		}
-		
-		for(DataNode dn : dataNodesToBeRemoved){
-			/*
-			 * 目的のデータノードに対して
-			 * 1.左右のデータノードからの参照と
-			 * 2.親から参照を取り除く
-			 */
-			//if(dn.getPrev() != null){ dn.getPrev().setNext(null);}//左からの参照削除
-			//if(dn.getNext() != null){ dn.getNext().setPrev(null);}//右からの参照削除
-			//親からの参照削除します
-			TreeNode parent = (TreeNode) dn.getParent();
-			parent.removeDataNode(dn);
 
+		priJap("データ削除前の自分の担当範囲:"+ this.id.toString());
+		priJap("左端のデータノードのレンジ:"+getFirstDataNode().getMinID().toString()+" - "+getFirstDataNode().getMaxID().toString());
+		if(getFirstDataNode().getNext()==null){
+			priJap("左端から２番目のデータノードはありません。");
 		}
-		pri("after total data size:");
-		pri(getTotalDataSizeByB_link());
-		priJap("/METHOD : UPDATEINDEX");
+
+		priJap("いまからループでデータを消していきます。");
+		for(DataNode dn : dataNodesToBeRemoved){
+			priJap("データ削除前のデータ数:"+getTotalDataSizeByB_link());
+			priJap("削除するデータ数:"+dn.size());
+			TreeNode parent = (TreeNode) dn.getParent();
+			priJap("データ削除前親の持つデータ数:"+parent.getDataSize());
+			try{
+				priJap("親の持つdataプロパティ");
+				for(ID id:parent.data){
+					if(id!=null)
+						pri(id.toString());
+				}
+				priJap("親の持つchildrenの種類");
+				for(Node n: parent.children){
+					if(n!=null)
+						pri(n.getName());
+				}
+				priJap("親の持つ子供の数:"+parent.getChildrenSize());
+				if(parent.equals(rootNode)){
+					priJap("親はルートノードです");
+				}
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+
+			/*
+			 * datanode がidを消すと
+			 * その親にそれが伝達される
+			 * 親は子の状態をみて削除するかどうかを判断する
+			 * 同様に一番親まで処理が続く。
+			 */
+			for(ID id : dn.getAll()){
+				pri("dn.remove");
+				dn.remove(this.getSender(),id);
+			}
+
+			//parent.removeDataNode(dn);
+
+
+			priJap("データ削除後のデータ数:"+getTotalDataSizeByB_link());
+			priJap("データ削除後の親の持つデータ数:"+parent.getDataSize());
+			priJap("対象とするデータノードのレンジ:"+dn.getMinID().toString()+" - "+dn.getMaxID().toString());
+		}
+
+		((TreeLocalStore)this.store).setFirstDataNode(((TreeLocalStore)this.store).searchFirstDataNode());
+		this.id = getFirstDataNode().getMinID();
+		priJap("データ削除前の自分の担当範囲:"+ this.id.toString());
+		priJap("ループ終わり");
+		priJap("左端のデータノードのレンジ:"+getFirstDataNode().getMinID().toString()+" - "+getFirstDataNode().getMaxID().toString());
+		if(getFirstDataNode().getNext()==null){
+			priJap("左端から２番目のデータノードはありません。");
+		}
 	}
 
-	
-	/*private int getTotalDataSizeByB_link(){
-		synchronized (this) {
-			int dataSize =0;
-			DataNode dataNode = getFirstDataNode();
-			while(dataNode != null){
-				dataSize += dataNode.size();
-				dataNode = dataNode.getNext();
-			}
-			return dataSize ;
-		}
-	}*/
 
 	/*
 	 * TODO
-	 * 
+	 *
+	 *
 	 * 負荷分散のためのデータノード移動が起きた時に呼ばれます。
 	 * この関数はデータノード受け取り用です。
-	 * 
+	 *
 	 * ここでデータノードを自分のインデックスの管理に入れます。
 	 * 自分自身のインデックスを更新して何らかのメッセージを返します。
-	 * @see distributedIndex.DistributedIndex#recieveAndUpdateDataForLoadMove(node.DataNode[], java.net.InetSocketAddress)
 	 */
-	@Override
-	public String recieveAndUpdateDataForLoadMove(DataNode[] dataNodes,
+	/*@Override
+	synchronized public String recieveAndUpdateDataForLoadMove(DataNode[] dataNodes,
 			InetSocketAddress senderAddress) {
 
 		priJap("METHOD : recieveAndUpdateDataForLoadMove関数が呼ばれました");
 		priJap("受け取ったデータノードの数は");
 		pri(dataNodes.length);
 		priJap("受け取ったデータノードに含まれるキーの数はそれぞれ");
+		int total=0;
 		for(DataNode d : dataNodes){
+			total+=d.size();
 			pri(d.size());
 		}
-		
+
+
+		priJap("受け取ったデータ総計:"+total);
 		priJap("データの送り主のアドレスは");
 		pri(senderAddress.getAddress().toString());
 		priJap("データ追加前の総合データ数は");
 		pri(getTotalDataSizeByB_link());
-		
+
 		boolean isAdded = false;
-		
-		synchronized (this) {
-			priJap("インデックス更新開始");
-			if(this.getPrevMachine() !=null && this.getPrevMachine().equals(senderAddress) ){
-				priJap("左からデータノードを受け取りました");
 
-				TreeLocalStore store = ((TreeLocalStore)this.store);
-				TreeNode parent = (TreeNode)store.getFirstDataNode().getParent();
+		TreeNode current = ((TreeLocalStore)this.store).getRoot();
+		while(current instanceof TreeNode){
 
-				isAdded = parent.addDataNodes(dataNodes);
+		}
 
-				//インデックス手法からの参照を作る
-				store.setFirstDataNode(dataNodes[0]);
-
-				/*
-				 * 受け手が左側からデータを受けとった時は
-				 * 自分の担当範囲を更新する
-				 */
-				this.id = this.getFirstDataNode().getMinID();
-
-			}else if(this.getNextMachine() != null && this.getNextMachine().equals(senderAddress)){
-				priJap("右からデータノードを受け取りました");
-
-				TreeLocalStore store = ((TreeLocalStore)this.store);
-				TreeNode parent = (TreeNode)store.getFirstDataNode().getParent();
-
-				DataNode child = store.getFirstDataNode();
-				while( true ){
-					child = child.getNext();
-					if(child.getNext() == null){break;}
-				}
-				parent = (TreeNode)child.getParent();
-				isAdded = parent.addDataNodes(dataNodes);			
+		priJap("インデックス更新開始");
+		for(DataNode dnToAdd: dataNodes){
+			for(ID id: dnToAdd.getAll()){
+				DataNode dn = store.updateKey(id);
+				NodeStatus status = updateData(getSender(), dn);
+				dn.add(getSender(), id);
+				endUpdateData(getSender(), status);
 			}
+		}
+
+
+		if(this.getPrevMachine() !=null && this.getPrevMachine().equals(senderAddress) ){
+			priJap("左からデータノードを受け取りました");
+
+			TreeLocalStore store = ((TreeLocalStore)this.store);
+			TreeNode parent = (TreeNode)store.getFirstDataNode().getParent();
+			isAdded = parent.addDataNodes(dataNodes);
+
+			//インデックス手法からの参照を作る
+			store.setFirstDataNode(dataNodes[0]);
+
+
+		 * 受け手が左側からデータを受けとった時は
+		 * 自分の担当範囲を更新する
+
+			this.id = this.getFirstDataNode().getMinID();
+
+		}else if(this.getNextMachine() != null && this.getNextMachine().equals(senderAddress)){
+			priJap("右からデータノードを受け取りました");
+
+			DataNode child = getRightMostDataNode();
+			TreeNode parent = (TreeNode)child.getParent();
+			isAdded = parent.addDataNodes(dataNodes);
 		}
 
 		priJap("データ追加後の総合データ数は");
 		pri(getTotalDataSizeByB_link());
 
-		if(isAdded == false){
-			return "NO";
+		//if(isAdded == false){
+		//return "NO";
+		//}
+
+		priJap("テスト用に「OK」を返します");
+		return "OK";
+	}
+*/
+
+
+
+	@Override
+	protected String updateIndexWhenReceivingData(DataMessage dataMessage) {
+		DataNode[] dataNodes = dataMessage.getDataNodeMessage().getDataNodes();
+		InetSocketAddress senderAddress = dataMessage.getDataNodeMessage().getSenderAddress();
+		priJap("METHOD : recieveAndUpdateDataForLoadMove関数が呼ばれました");
+		priJap("受け取ったデータノードの数:"+dataNodes.length);
+		priJap("受け取ったデータノードに含まれるキーの数はそれぞれ");
+		int total=0;
+		for(DataNode d : dataNodes){
+			total+=d.size();
+			pri(d.size());
 		}
-		
+		priJap("受け取ったデータ総計:"+total);
+		priJap("データの送り主のアドレス:"+senderAddress.getAddress().toString());
+		priJap("データ追加前の総合データ数:"+getTotalDataSizeByB_link());
+		priJap("インデックス更新開始");
+
+		for(DataNode dnToAdd: dataNodes){
+			for(ID id: dnToAdd.getAll()){
+				DataNode dn = store.updateKey(id);
+				NodeStatus status = updateData(getSender(), dn);
+				dn.add(getSender(), id);
+				endUpdateData(getSender(), status);
+			}
+		}
+		priJap("データ追加後の総合データ数:"+getTotalDataSizeByB_link());
 		priJap("テスト用に「OK」を返します");
 		return "OK";
 	}
 
-	@Override
-	public void startLoadBalance() {
-		// TODO 自動生成されたメソッド・スタブ
-		
-	}
+
 
 	@Override
-	protected boolean updateIndex() {
+	protected String updateIndexWhenReceivingUpdateInfo(
+			UpdateInfoMessage updateInfoMessage) {
 		// TODO 自動生成されたメソッド・スタブ
-		return false;
+		return null;
 	}
+
+
+
 }
 
 

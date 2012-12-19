@@ -6,16 +6,16 @@ import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 
+import util.AlphanumericID;
+
 import log_analyze.AbstractAnalyzer;
 import log_analyze.MyStringBuilder;
 
 public class PutAnalyzer extends AbstractAnalyzer{
 
-	
-	
 	private static final String dirName = "putAnalyze";
 	private MyStringBuilder putToGetResult = new MyStringBuilder("putToGet");
-	
+	private MyStringBuilder putRateResult = new MyStringBuilder("putRate");
 	ArrayList<MyStringBuilder> resultList = new ArrayList<MyStringBuilder>();
 	
 	private int count = 1;
@@ -23,6 +23,7 @@ public class PutAnalyzer extends AbstractAnalyzer{
 	
 	PutAnalyzer(){
 		this.resultList.add(putToGetResult);
+		this.resultList.add(putRateResult);
 	}
 	
 	
@@ -42,10 +43,37 @@ public class PutAnalyzer extends AbstractAnalyzer{
 		}
 	}
 	
+	/*
+	 * putデータの計算機ごとの分布を調べる
+	 */
+	private void putRate(String line){
+		String[] items = splitLine(line);
+		String queryName = items[0];
+		String key = items[1]; 
+		String value = items[2];
+		AlphanumericID getId = new AlphanumericID(key);
+		if(getId.compareTo(Main.range0) < 0){
+			putRateResult.append(makeLogLineNotToRemoveTag(count+"  -1"));
+		}
+		else if(getId.compareTo(Main.range1) < 0){
+			putRateResult.append(makeLogLineNotToRemoveTag(count+"  0"));
+		}
+		else if(getId.compareTo(Main.range2) < 0){
+			putRateResult.append(makeLogLineNotToRemoveTag(count+"  1"));
+		}
+		else if(getId.compareTo(Main.range3) < 0){
+			putRateResult.append(makeLogLineNotToRemoveTag(count+"  2"));
+		}
+		else {
+			putRateResult.append(makeLogLineNotToRemoveTag(count+"  3"));
+		}		
+	}
+	
 	@Override
 	public void analyze(String line) {
 		if(line.startsWith("put")){
 			putToGet(line);
+			putRate(line);
 		}
 		
 	}

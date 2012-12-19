@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.io.Serializable;
 import java.net.Socket;
 
 import loadBalance.LoadChecker;
@@ -14,7 +15,7 @@ import loadBalance.LoadChecker;
 import command.Command;
 import distributedIndex.DistributedIndex;
 
-public class MessageHandler {
+public class MessageHandler implements Serializable{
 	private Map<String, Command> commandTable;
 	private DistributedIndex distIndex;
 	private ID id;
@@ -30,16 +31,16 @@ public class MessageHandler {
 	private Object sourceShellLock = new Object();
 	private Thread sourceShellThread;
 
-	
-	
-	
-	
+
+
+
+
 	private LoadChecker loadChecker;
-	
+
 	public void setLoadChecker(LoadChecker loadChecker){
 		this.loadChecker = loadChecker;
 	}
-	
+
 
 
 	public MessageHandler(Map<String, Command> commandTable, DistributedIndex distIndex, ID id, int port) throws IOException {

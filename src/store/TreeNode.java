@@ -48,19 +48,25 @@ public final class TreeNode extends MyUtil implements Node {
 	// 	this.status = LatchUtil.newLatch();
 	// }
 
-	
-	
-	
-	
-	
-	
+
+
+
+	public boolean equals(TreeNode tn){
+		if(data[0]!=null && tn.data[0]!=null
+				&& data[0].toString().equals(tn.data[0].toString())){
+			return true;
+		}
+		return false;
+	}
+
+
 
 	/*
 	 * @author tokuda
 	 * add new code.
 	 * start.
 	 */
-	
+
 	public DataNode getFirstDataNode(){
 		for(int i=0; i< this.getChildrenSize(); i++){
 			if(this.children[i] instanceof DataNode){
@@ -69,7 +75,7 @@ public final class TreeNode extends MyUtil implements Node {
 		}
 		return null;
 	}
-	
+
 	public DataNode getLastDataNode(){
 		DataNode lastDn = null;
 		for(int i=0; i< this.getChildrenSize(); i++){
@@ -79,7 +85,7 @@ public final class TreeNode extends MyUtil implements Node {
 		}
 		return lastDn;
 	}
-	
+
 	/*
 	 * B-linkの構造を使ってデータノードをループしてデータサイズを取得します
 	 */
@@ -87,7 +93,7 @@ public final class TreeNode extends MyUtil implements Node {
 		int count = 0;
 		DataNode dn = getFirstDataNode();
 		if(dn == null)return 0;
-		
+
 		while(!dn.equals(getLastDataNode())){
 			count+= dn.size();
 			dn = dn.getNext();
@@ -95,7 +101,7 @@ public final class TreeNode extends MyUtil implements Node {
 		count+= dn.size();
 		return count;
 	}
-	
+
 	public int getDataSize(){
 		int count=0;
 		for(int i=0; i< this.getChildrenSize(); i++){
@@ -105,8 +111,8 @@ public final class TreeNode extends MyUtil implements Node {
 		}
 		return count;
 	}
-	
-	
+
+
 	public int getNumberOfLeafNode(){
 		int count=0;
 		for(int i=0; i< this.getChildrenSize(); i++){
@@ -116,7 +122,7 @@ public final class TreeNode extends MyUtil implements Node {
 		}
 		return count;
 	}
-	
+
 	public int getNumberOfInterNodes(){
 		int count = 0;
 		for(int i=0; i< this.getChildrenSize();i++){
@@ -126,9 +132,9 @@ public final class TreeNode extends MyUtil implements Node {
 		}
 		return count;
 	}
-	
-	
-	
+
+
+
 	/*
 	 * childrenに渡された配列の中身をコピーしていきます。
 	 * 単純にポインタを入れ替えるだけではありません。
@@ -143,18 +149,27 @@ public final class TreeNode extends MyUtil implements Node {
 		}
 		return true;
 	}
-	
-	
-	
+
+
+
 	public void removeDataNode(DataNode dn){
-		Node[] newChildren = new Node[getChildrenSize()-1];//親の子供を新しい子供に置き換えます
+		/*Node[] newChildren = new Node[getChildrenSize()-1];//親の子供を新しい子供に置き換えます
 		for(int i=0,j=0;i < getChildrenSize();i++){
-			/*
+			
 			 * 目的のデータノードはコピーしないでとばす。
 			 * ポインタで判別しようとしたらうまくいってなかったらしい。(parent.chidlren[i] == dn　のような感じ)
 			 * そこで担当IDが同じということで判別する。
-			 */
-			if(dn.equals(children[i])== true){
+			 
+			if( children[i]==dn){
+				priJap("removeDataNodeで削除したいデータノードが見つかった");
+				//priJap("担当範囲:"+dn.getMinID().toString()+" - "+dn.getMaxID().toString());
+				if(dn.getPrev()!=null){
+					priJap("左隣の担当範囲:"+dn.getPrev().getMinID().toString()+" - "+dn.getPrev().getMaxID().toString());
+				}
+				if(dn.getNext()!=null){
+					priJap("右隣の担当範囲:"+dn.getNext().getMinID().toString()+" - "+dn.getNext().getMaxID().toString());
+				}
+
 				//削除するデータノードの前後のB-linkを更新します。
 				if(dn.getPrev()!=null && dn.getNext()!=null){
 					dn.getPrev().setNext(dn.getNext());
@@ -166,7 +181,7 @@ public final class TreeNode extends MyUtil implements Node {
 				}else if(dn.getPrev()==null && dn.getNext()==null){
 					//do nothing.
 				}
-				
+
 			}else{
 				//データノードが見つからなかった場合
 				if(j == getChildrenSize()-1){
@@ -177,32 +192,61 @@ public final class TreeNode extends MyUtil implements Node {
 			}
 		}
 		//親から子への参照を取り除く
-		replaceChildren(newChildren);
+		replaceChildren(newChildren);*/
+		
+		//削除するデータノードの前後のB-linkを更新します。
+		if(dn.getPrev()!=null && dn.getNext()!=null){
+			dn.getPrev().setNext(dn.getNext());
+			dn.getNext().setPrev(dn.getPrev());
+		}else if(dn.getPrev()==null && dn.getNext()!=null){
+			dn.getNext().setPrev(null);
+		}else if(dn.getPrev()!=null && dn.getNext()==null){
+			dn.getPrev().setNext(null);
+		}else if(dn.getPrev()==null && dn.getNext()==null){
+			//do nothing.
+		}
+		int index =0;
+		//消したいノードのインデックス取得
+		for (int i=0; i<MAX_CHILDREN_NODES; i++) {
+			if (this.children[i]==dn){
+				index=i;
+				break;
+			}
+		}
+		//消したいノードから右側全部を１つずつ左へスライドさせる
+		for (int i=index; i<MAX_CHILDREN_NODES-1 ; i++) {
+			this.data[i] = this.data[i+1];
+			this.children[i] = this.children[i+1];
+		}
+		this.children[MAX_CHILDREN_NODES-1]= null;
+		this.data[MAX_CHILDREN_NODES-1] = null;
+		
 	}
-	
-	
-	
+
+
+
+
 	/*
 	 * クラス変数のchildrenを、 渡された配列dnsをchildrenに追加して作った新しい配列に置き換えます
 	 * ただしdnsには担当範囲が連続し整列された（担当ID的に）配列を渡してください。
-	 * 
+	 *
 	 * データノードの追加場所（データノード的に左側OR右側）は勝手に判断します。
 	 * またB-link構造も追加にあわせて更新します。
-	 * 
+	 *
 	 * このメソッドは負荷分散のためにデータノードを移動するので、そのために追加しました。
-	 * 
+	 *
 	 * ##### caution #####
 	 * DataNodeを１つも持たない場合は使用しないでください。
 	 * DataNodeが１つはないとB-linkに追加したDataNodeを割り込ませることができません
 	 * 解決方法としては親に尋ねるという方法があります。
 	 */
 	public boolean addDataNodes(DataNode[] dns){
-		
+
 		try{
 			//追加するデータノード間の参照を作る。親ノードへの参照を作る
 			for(int i=0;i< dns.length ; i++){
 				dns[i].setParent(this);
-				
+
 				if(dns.length == 1){break;}
 				if(i==0){
 					dns[i].setNext(dns[i+1]);
@@ -213,12 +257,12 @@ public final class TreeNode extends MyUtil implements Node {
 					dns[i].setPrev(dns[i-1]);
 				}
 			}
-			
+
 			DataNode rightMostDataNode = null;
 			boolean addToRightMost= false;
 			boolean isFirst = true;
-			
-			
+
+
 			for(int i=0; i< getChildrenSize();i++){
 				if(children[i] instanceof DataNode){
 					DataNode dnc = (DataNode)children[i];
@@ -254,7 +298,7 @@ public final class TreeNode extends MyUtil implements Node {
 						}
 						isFirst = false;
 					}
-					
+
 					rightMostDataNode = dnc;
 				}
 			}
@@ -267,12 +311,12 @@ public final class TreeNode extends MyUtil implements Node {
 				dns[0].setPrev(rightMostDataNode);
 				rightMostDataNode.setNext(dns[0]);
 			}
-			
-			
-			
+
+
+
 			//childrenをdataNodeを追加した新しいもの(newChildren)に置き換えます。
 			Node[] newChildren = new Node[getChildrenSize()+dns.length];
-			
+
 			if(addToRightMost == false){
 				for(int i=0,j=0;i < newChildren.length;i++){
 					if(i < dns.length){
@@ -292,31 +336,31 @@ public final class TreeNode extends MyUtil implements Node {
 					}
 				}
 			}
-			
+
 			replaceChildren(newChildren);
 		}catch(Exception e){
 			return false;
 		}
-		
+
 		return true;
-		
-		
+
+
 	}
-	
-	
+
+
 	/*
 	 * @author tokuda
 	 * end
-	 * 
+	 *
 	 */
-	
-	
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
+
+
 	public Node toInstance(String[] text, ID id) {return null;}
 	public String toMessage() {return null;}
 
@@ -389,56 +433,150 @@ public final class TreeNode extends MyUtil implements Node {
 	}
 
 
+
+	/*
+	 * TODO
+	 */
+	public void removeTreeNode(TreeNode tn){
+		int index =0;
+		//消したいノードのインデックス取得
+		for (int i=0; i<MAX_CHILDREN_NODES; i++) {
+			if (this.children[i].equals(tn)){
+				index=i;
+				break;
+			}
+		}
+		//消したいノードから右側全部を１つずつ左へスライドさせる
+		for (int i=index; i<MAX_CHILDREN_NODES-1 ; i++) {
+
+			this.data[i] = this.data[i+1];
+			this.children[i] = this.children[i+1];
+		}
+		this.children[MAX_CHILDREN_NODES-1]= null;
+		this.data[MAX_CHILDREN_NODES-1] = null;
+	}
+
+
+
 	public void ackUpdate(MessageSender sender, Node childrenNode) {
 		Node splitedNode = null;
-
+		boolean whenSplite=false;
+		boolean whenRemove=false;
 		/*
-		 *
+		 * 子はデータノードの場合とツリーノードの場合があり、
+		 * それらの子が制限値を超えて増えたときには分割する。
 		 */
 		if (childrenNode instanceof DataNode) {
 			DataNode dataNode = (DataNode)childrenNode;
 			int size = dataNode.size();
-			if (size <= MAX_ID_PER_DATANODE) return;
-			splitedNode = dataNode.split();
-		}
-		else {
-			TreeNode treeNode = (TreeNode)childrenNode;
-			if (treeNode.data[MAX_CHILDREN_NODES - 1] == null) return;
-			splitedNode = treeNode.split();
-		}
-
-		int index = 0;
-		for (int i = MAX_CHILDREN_NODES - 1; i >= 1; i--) {
-			if (this.children[i] == childrenNode) {
-				index = i;
-				break;
+			if(size == 0){
+				whenRemove=true;
+				removeDataNode(dataNode);
+			}else if (size <= MAX_ID_PER_DATANODE){
+				return;
+			}else{
+				whenSplite=true;
+				splitedNode = dataNode.split();
 			}
-			this.data[i] = this.data[i - 1];
-			this.children[i + 1] = this.children[i];
+		}
+		else if(childrenNode instanceof TreeNode){
+			TreeNode treeNode = (TreeNode)childrenNode;
+			if(treeNode.data[0] == null){
+				whenRemove=true;
+				removeTreeNode(treeNode);
+			}
+			else if (treeNode.data[MAX_CHILDREN_NODES - 1] == null){
+				return;
+			}else{
+				whenSplite=true;
+				splitedNode = treeNode.split();
+			}
 		}
 
-		this.data[index] =
-				(splitedNode instanceof DataNode) ?
-						((DataNode)splitedNode).getMinID() :
-							((TreeNode)splitedNode).data[0];
-						this.children[index + 1] = splitedNode;
 
 
-						if (this.children[MAX_CHILDREN_NODES] != null) {
-							if (this.parent != null) {
-								this.parent.ackUpdate(sender, this);
-							}
-							else {
-								TreeNode treeNode = this.split();
-								TreeNode root = new TreeNode(this.store);
-								root.data[0] = treeNode.data[0];
-								root.children[0] = this;
-								root.children[1] = treeNode;
-								this.parent = root;
-								treeNode.parent = root;
-								this.store.setRoot(root);
-							}
-						}
+		if(whenRemove==true){
+			
+			/*
+			 * もしノードを削除したせいで自分の子が０になったときには
+			 * 自分も削除する
+			 */
+			if (this.children[0] == null) {
+				/*
+				 * 自分はルートではないなら、親に自分の分割を任せる。
+				 */
+				if (this.parent != null) {
+					this.parent.ackUpdate(sender, this);
+				}
+				//自分がルートであるなら、そこで終了
+				else {
+				}
+			}
+		}
+
+
+		if(whenSplite==true){
+			/*
+			 * 分割するノードを探しながら、新しいノードを入れる場所を作るために
+			 * ノードをスライドさせる。
+			 */
+			int index = 0;
+			for (int i = MAX_CHILDREN_NODES - 1; i >= 1; i--) {
+				if (this.children[i] == childrenNode) {
+					index = i;
+					break;
+				}
+				this.data[i] = this.data[i - 1];
+				this.children[i + 1] = this.children[i];
+			}
+
+			/*
+			 * 先ほど作った空きスペースに分割して新しく生まれたノードを入れる。
+			 */
+			/*this.data[index] =(splitedNode instanceof DataNode) ?((DataNode)splitedNode).getMinID() :
+				((TreeNode)splitedNode).data[0];もともとはこのコードでした。*/
+			//上のものをこのように変更してみました。
+			this.data[index] =(splitedNode instanceof DataNode) ?((DataNode)splitedNode).getMinID() :
+				((TreeNode)splitedNode).getLeftMostDataNode().getMinID();
+			this.children[index + 1] = splitedNode;
+
+
+			/*
+			 * もし新しくノードを入れたせいで自分の子が制限値より増えたときには
+			 * 自分も分割する
+			 */
+			if (this.children[MAX_CHILDREN_NODES] != null) {
+				/*
+				 * 自分はルートではないなら、親に自分の分割を任せる。
+				 */
+				if (this.parent != null) {
+					this.parent.ackUpdate(sender, this);
+				}
+				//自分がルートであるなら、自分で自分を分割する。
+				//とはいっても自分の持つ子を分割するだけだが。。
+				else {
+					TreeNode treeNode = this.split();
+					TreeNode root = new TreeNode(this.store);
+					//root.data[0] = treeNode.data[0];もともとはこのコード
+					root.data[0] = treeNode.getLeftMostDataNode().getMinID();//それをこのように変更してみました
+					root.children[0] = this;
+					root.children[1] = treeNode;
+					this.parent = root;
+					treeNode.parent = root;
+					this.store.setRoot(root);
+				}
+			}
+		}
+	}
+	
+	private DataNode getLeftMostDataNode(){
+		Node leftMost = children[0];
+		if(leftMost instanceof TreeNode){
+			return getLeftMostDataNode();
+		}else if(leftMost instanceof DataNode){
+			return (DataNode)leftMost;
+		}
+		return null;
 	}
 
 	public NodeStatus searchData() {

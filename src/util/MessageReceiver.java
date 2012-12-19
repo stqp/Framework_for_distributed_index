@@ -3,15 +3,16 @@ package util;
 
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.ServerSocket;
 
 
 
-public class MessageReceiver implements Runnable {
-	
-	
+public class MessageReceiver implements Runnable, Serializable{
+
+
 	private ServerSocket servSock;
 	private MessageHandler handler;
 
@@ -20,7 +21,7 @@ public class MessageReceiver implements Runnable {
 	public MessageReceiver(int port, MessageHandler handler) throws IOException {
 		this.servSock = new ServerSocket();
 		this.servSock.setReuseAddress(true);
-		
+
 		this.servSock.bind(new InetSocketAddress(port));
 
 		this.handler = handler;
@@ -61,7 +62,7 @@ public class MessageReceiver implements Runnable {
 				return;
 			}
 
-			
+
 			try {
 				Thread t = new Thread(this.handler.create(sock));
 				t.setDaemon(false);
@@ -70,11 +71,11 @@ public class MessageReceiver implements Runnable {
 			catch (IOException e) {
 				e.printStackTrace();
 			}
-			
+
 		}
 	}
 
-	
+
 	public String[] getResponse(Shell shell, int signature) throws InterruptedException {
 		return this.handler.getResponse(shell, signature);
 	}

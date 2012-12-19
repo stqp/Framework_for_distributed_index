@@ -55,6 +55,9 @@ public final class InitCommand extends AbstractCommand implements Command {
 		}
 		System.out.println("INIT_args.length : " + args.length);
 
+		/*
+		 * args -->  id　のみ
+		 */
 		if (args.length == 1) {
 			ID newID = id.getID(args[0]);
 			distIndex.initialize(newID);
@@ -82,7 +85,14 @@ public final class InitCommand extends AbstractCommand implements Command {
 		 * arguments[2] is port number.
 		 */
 		try {
+			//自分に割り振られた担当ID
 			ID newID = id.getID(args[0]);
+			
+			/*
+			 * まず１台が初期化される。これはargs.length==1の時。
+			 * 他の計算機はその１台と通信してインデックスを構成する。
+			 * ここのhost,firstAddrは最初に初期化される１台のアドレスを指している。
+			 */
 			InetAddress host = InetAddress.getByName(args[1]);
 			InetSocketAddress firstAddr = new InetSocketAddress(host, Integer.parseInt(args[2]));
 			
@@ -93,9 +103,7 @@ public final class InitCommand extends AbstractCommand implements Command {
 
 				synchronized (distIndex) {
 
-					priJap("args.lengthが3のとき");
 					distIndex.initialize(newID);
-					//distIndex.setMyAddress(firstAddr);//TODO
 					
 
 					String msg = "init " + args[0] + " " + args[1] + " " + args[2] + " " + newPort;

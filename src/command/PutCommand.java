@@ -66,7 +66,6 @@ public final class PutCommand extends AbstractCommand implements Command{
 		StringBuilder sb = new StringBuilder();
 		String text = null;
 		InetSocketAddress putAddr = null;
-
 		ID putID = id.getID(args[0]);
 		String value = args[1];
 		int putPort = receiver.getPort();
@@ -89,7 +88,11 @@ public final class PutCommand extends AbstractCommand implements Command{
 				putAddr = new InetSocketAddress(InetAddress.getByName(args[4]), putPort);
 			}
 
-
+			pri("in putCommand. text:"+text);
+			/*
+			 *　キーを入れることができるならそのデータノード
+			 *　できないならキーに範囲に近い計算機のアドレスノードを返します。
+			 */
 			Node node = distIndex.updateKey(sender, putID, text);
 			
 			/*

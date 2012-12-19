@@ -1,7 +1,10 @@
 package util;
+
+import java.io.Serializable;
+
 // ID.java
 
-public interface ID {
+public interface ID extends Serializable{
     ID toInstance(String text);
     String toMessage();
 

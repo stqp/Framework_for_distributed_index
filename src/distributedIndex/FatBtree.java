@@ -26,12 +26,16 @@ import util.Shell;
 import loadBalance.LoadInfoTable;
 import log_analyze.AnalyzerManager;
 import main.Main;
+import message.DataMessage;
 import message.LoadMessage;
+import message.UpdateInfoMessage;
 import node.AddressNode;
 import node.DataNode;
 import node.Node;
 
-public class FatBtree extends AbstractDistributedIndex implements DistributedIndex {
+public class FatBtree extends AbstractDoubleLinkDistributedIndex {
+
+
 	private static final String NAME = "FatBtree";
 	public String getName() {return NAME;}
 
@@ -40,7 +44,6 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 	protected DataNode leftmost;
 	protected HashMap<String,Node> fbtNodes; // Node.toLabel(), Node instance (FBTNode, AddressNode, DataNode)
 	protected InetSocketAddress nextMachine;
-	protected InetSocketAddress prevMachine;
 
 	//protected InetSocketAddress myAddress;
 
@@ -598,9 +601,6 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 		return this.nextMachine;
 	}
 
-	public InetSocketAddress getPrevMachine() {
-		return this.prevMachine;
-	}
 
 	public Node searchKey(MessageSender sender, ID key) throws IOException {
 		return searchKey(sender, key, this.root, false);
@@ -1265,21 +1265,21 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 	 * but can get "/192.168.0.102"
 	 * so for key of loadInfoTable , i should trim the string of next machine address.
 	 */
-
+/*
 	private String getPrevMachineIPString(){
 		if(this.getPrevMachine() == null){
 			return "";
 		}
 		String address = this.getPrevMachine().getAddress().toString();
 		return address.substring(address.indexOf('/'));
-	}
+	}*/
 
 
 
 	/*
 	 * TODO
 	 */
-	public void checkLoad(LoadInfoTable loadInfoTable, MessageSender sender){
+	/*public void checkLoad(LoadInfoTable loadInfoTable, MessageSender sender){
 
 		// ##### 時間測定用変数 #####
 		long checkStartTime_msec = getCurrentTime();
@@ -1290,7 +1290,7 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 
 
 
-		/*try{
+		try{
 			//アドレスノードの位置を調べる
 			for(Node node : this.root.children){
 				//priJap("ルートの子供です。");
@@ -1312,7 +1312,7 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 			}
 		}catch(Exception e){
 
-		}*/
+		}
 
 
 
@@ -1431,11 +1431,11 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 
 
 		//##### 負荷移動フェーズ #####
-		/*
+
 		 * この場合は負荷分散が必要ない
 		 * １．自分の負荷がある閾値より小さい
 		 * ２．自分の負荷が両隣の負荷のどちらよりも小さい
-		 */
+
 		if(myLoad <= threshold || (myLoad <= prevLoad && myLoad <= nextLoad) ){
 			//負荷集計が終わったらデータノードに蓄積したアクセス負荷の情報をリセットします。
 			resetLoadCounter();
@@ -1461,11 +1461,11 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 		//前と後のどちらにデータを移動するか決定する
 		if(myLoad > prevLoad && prevLoad != 0){
 			priJap("前の計算機へデータノードを転送します。");
-			/*
+
 			 * 次の場合は移動するデータノードの探索を終了し移動に移ります。
 			 * １．データノード移動あとの負荷が閾値より小さい
 			 * ２．移動可能なデータ数（データノードに格納されているID数）を超えた
-			 */
+
 			DataNode dataNode = this.getFirstDataNode();
 			while( true  ){
 				if( 	( myLoad - (tempLoadCount + dataNode.getLoad()) ) < threshold
@@ -1501,9 +1501,9 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 
 		//転送するデータノードが決まったら、データノードに蓄積したアクセス負荷の情報をリセットします。
 		resetLoadCounter();
-		
-		
-		
+
+
+
 		//実際にデータ転送が行われるのはここ
 		moveData((DataNode[])dataNodeToBeMoved.toArray(new DataNode[0]),target , sender);
 		// ##### /負荷移動フェーズ #####
@@ -1530,19 +1530,19 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 				+" "+(checkEndTime_msec-updateStartTime_msec));
 
 	}
-	
-	
-	private void sendUpdateInfo(InetSocketAddress target, DataNode[] dataNodesToBeRemoved){
-		
-		
-	}
-	
+	*/
 
-	private void updateIndex(DataNode[] dataNodesToBeRemoved,
+	private void sendUpdateInfo(InetSocketAddress target, DataNode[] dataNodesToBeRemoved){
+
+
+	}
+
+
+	/*private void updateIndex(DataNode[] dataNodesToBeRemoved,
 			InetSocketAddress target) {
 		priJap("updateIndex関数が呼ばれました");
-		
-		
+
+
 		for(DataNode dn : dataNodesToBeRemoved){
 			FBTNode parent = (FBTNode) dn.getParent();
 			parent.replaceDataNodeToAddressNode(dn, new AddressNode(target, dn.toLabel()));
@@ -1553,8 +1553,8 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 				listToSend.add(isa);
 			}
 			//データノードの場合終わり
-			
-			
+
+
 			//もし親がルートノードなら終了
 			if(parent.getNumberOfLeafNodes() > 0 || parent.equals(this.root)){
 				for(InetSocketAddress isa : listToSend){
@@ -1566,11 +1566,11 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 
 			parent = parent.parent;
 			FBTNode child = parent;
-			
+
 			//インターノードとインターノード
 			//再帰的な処理に移ります
-			while(parent != null 
-					&& parent.getNumberOfInterOrLeafNodes()== 0 
+			while(parent != null
+					&& parent.getNumberOfInterOrLeafNodes()== 0
 					&& !parent.equals(this.root) ){
 				for(InetSocketAddress isa : parent.shareAddress){
 					if(!listToSend.contains(isa)){
@@ -1581,32 +1581,32 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 				parent = parent.parent;
 				child = parent;
 			}
-			
+
 			//TODO
-			/*
+
 			 * 送るもの
 			 * ・minId
 			 * ・自分のアドレス　<-- 送った先でアドレスノードを突き止めるのに使えそう
-			 */
+
 			for(InetSocketAddress isa : listToSend){
 				//sendUpdateInfo();
 			}
 
-			
-			
-			/*
+
+
+
 			 * 以降は削除かなー
 			 * here,
 			 * if parent has no leaf node, replace FBTnode parent to address node.
 			 * and if the grand parent is not root node, calcurate recursively.
-			 * 
+			 *
 			 * in short, check the grand parent has no inter-node(FBTNode) or not ,
 			 * and if then check the grand grand parent,,,,
-			 * 
+			 *
 			 * ここでは
 			 * リーフノードとインターノード間での更新を行います。
-			 */
-			/*FBTNode grandParent = parent.parent;
+
+			FBTNode grandParent = parent.parent;
 			FBTNode targetChild = parent;
 			ArrayList<InetSocketAddress> listToSendUpdateInfo = new ArrayList<InetSocketAddress>();
 			if(parent.getNumberOfLeafNodes() == 0){
@@ -1628,28 +1628,28 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 					}
 				}
 			}else {
-			}*/
-			/*
+			}
+
 			 * データノードとインターノード間の更新情報を送る
-			 * 
+			 *
 			 * ここで階層ごとに更新情報を送るようにします。
 			 * なぜならまとめて更新情報を送ると面倒くさいからです
-			 */
+
 			//sendUpdateInfo(listToSendUpdateInfo);
-			/*listToSendUpdateInfo.clear();
+			listToSendUpdateInfo.clear();
 			parent = parent.parent;
 			targetChild = parent;
 			 * ここでは
 			 * インターノードとルート間の再帰的な更新を行います。
 			while(parent != this.root){
 			}
-			 */
-			/*
+
+
 			 * 目的のデータノードに対して
 			 * 1.左右のデータノードからの参照と
 			 * 2.親から参照を取り除く
-			 */
-			/*if(dn.getPrev() != null){ dn.getPrev().setNext(null);}//左からの参照削除
+
+			if(dn.getPrev() != null){ dn.getPrev().setNext(null);}//左からの参照削除
 			if(dn.getNext() != null){ dn.getNext().setPrev(null);}//右からの参照削除
 			//親からの参照削除します
 			TreeNode parent = (TreeNode) dn.getParent();
@@ -1664,7 +1664,7 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 				}
 			}
 			//親から子への参照を取り除く
-			parent.children = newChildren;*/
+			parent.children = newChildren;
 		}
 	}
 
@@ -1700,7 +1700,7 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 		return false;
 	}
 
-
+*/
 
 	//TODO
 	private String parseTextAndGetMinIdString(String text){
@@ -2884,6 +2884,30 @@ public class FatBtree extends AbstractDistributedIndex implements DistributedInd
 	}
 
 
+
+
+
+	@Override
+	protected void updateIndex(DataNode[] dataNodesToBeRemoved,
+			InetSocketAddress target) {
+		// TODO 自動生成されたメソッド・スタブ
+
+	}
+
+	@Override
+	protected String updateIndexWhenReceivingData(DataMessage dataMessage) {
+		// TODO 自動生成されたメソッド・スタブ
+		return null;
+	}
+
+	@Override
+	protected String updateIndexWhenReceivingUpdateInfo(
+			UpdateInfoMessage updateInfoMessage) {
+		// TODO 自動生成されたメソッド・スタブ
+		return null;
+	}
+
+
 }
 
 final class FBTNode extends MyUtil implements Node{
@@ -3103,7 +3127,7 @@ final class FBTNode extends MyUtil implements Node{
 		}
 		return count;
 	}
-	
+
 	/*
 	 * 子供のノードのうちで中間ノードの数を返します。
 	 * 実装的にはFBTNodeのchildrenに入っているFBTNodeの数を返します。

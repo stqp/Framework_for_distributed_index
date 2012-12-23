@@ -12,6 +12,7 @@ import main.Main;
 import message.DataMessage;
 import message.DataNodeMessage;
 import message.LoadMessage;
+import message.Message;
 import message.UpdateInfoMessage;
 import node.DataNode;
 
@@ -75,11 +76,13 @@ public abstract class AbstractDistributedIndex extends MyUtil implements Distrib
 	 * 下位クラスで実装してもらう処理
 	 */
 	//データ移動での送り手側の更新
-	protected abstract void updateIndex(DataNode[] dataNodesToBeRemoved,	InetSocketAddress target);
+	protected abstract Message updateIndex(DataNode[] dataNodesToBeRemoved,	InetSocketAddress target);
 	//データ移動での受けて側の更新
 	protected abstract String updateIndexWhenReceivingData(DataMessage dataMessage);
 	//移動の更新情報を受け取ったときの更新
 	protected abstract String updateIndexWhenReceivingUpdateInfo(UpdateInfoMessage updateInfoMessage);
+	//データ移動の情報を転送する
+	protected abstract String sendUpdateInfo(Message message);
 
 
 	/*
@@ -113,13 +116,16 @@ public abstract class AbstractDistributedIndex extends MyUtil implements Distrib
 	public String  receiveData(String someMessage){
 		priJap("負荷分散のためのデータ受け取り");
 		String substring = someMessage.substring("LOAD_MOVE_DATA_NODES".length());
-		DataNodeMessage dtnMes = (new Gson()).fromJson(substring, DataNodeMessage.class);
+		DataMessage dm = (new Gson()).fromJson(substring, DataMessage.class);
 		priJap("データノードを受け取りました");
 		priJap("受け取ったメッセージは"+someMessage);
-		priJap("送り主は"+dtnMes.getSenderAddress().toString());
+		if(dm.getDataNodeMessage().getSenderAddress()!=null){
+			priJap("送り主は"+dm.getDataNodeMessage().getSenderAddress().toString());
+		}else{
+			priJap("送り主はエラーが出るので取得できません");
+		}
 
-		return updateIndexWhenReceivingData(
-				(new Gson()).fromJson(someMessage, DataMessage.class));
+		return updateIndexWhenReceivingData(dm);
 	}
 
 
@@ -127,7 +133,7 @@ public abstract class AbstractDistributedIndex extends MyUtil implements Distrib
 	public void startLoadBalance(){
 		priJap("startLoadBalance");
 		// ##### 計算機の状態をログに出力 #####
-		//pri(fromStatusToString());
+		pri(fromStatusToString());
 		// ##### /計算機の状態をログに出力 #####
 		pri("THREADCOUNT :" +Thread.activeCount());
 
@@ -172,7 +178,8 @@ public abstract class AbstractDistributedIndex extends MyUtil implements Distrib
 		if(counterForLoadCheck > ifOverThisNumberThenMoveDataHappen){
 			if(ldb.getIsMoved() == true){
 				priJap("インデックスフェーズ");
-				updateIndex(ldb.getDataNodesToBeMoved(), ldb.getTarget());priJap("/インデックスフェーズ");
+				Message mes = updateIndex(ldb.getDataNodesToBeMoved(), ldb.getTarget());priJap("/インデックスフェーズ");
+				sendUpdateInfo(mes);
 			}
 			counterForLoadCheck=0;
 		}
@@ -260,26 +267,14 @@ public abstract class AbstractDistributedIndex extends MyUtil implements Distrib
 	/*
 	 * ユーティリティ
 	 */
-	/*
-	 * どうもB-linkの右から左へのリンクがちゃんとできていないようなので
-	 * ここで作成しなおします。
-	 */
-	public void makeB_linkRightToLeft(){
-		DataNode dn = getFirstDataNode();
-		while(dn != null){
-			if(dn.getNext()!=null){
-				dn.getNext().setPrev(dn);
-			}
-			dn = dn.getNext();
-		}
-	}
-
 	public DataNode getRightMostDataNode(){
-		makeB_linkRightToLeft();
 		DataNode dn = getFirstDataNode();
 		DataNode rightMost=null;
 		while(dn != null){
 			rightMost = dn;
+			if(dn.getNext()!=null){
+				dn.getNext().setPrev(dn);
+			}
 			dn = dn.getNext();
 		}
 		return rightMost;

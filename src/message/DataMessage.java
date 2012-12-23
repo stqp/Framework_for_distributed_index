@@ -5,6 +5,11 @@ import com.google.gson.Gson;
 public class DataMessage extends AbstractMessage{
 
 	DataNodeMessage dataNodeMessage;
+	public DataMessage(){}
+
+
+
+
 	public DataNodeMessage getDataNodeMessage() {
 		return dataNodeMessage;
 	}
@@ -12,6 +17,6 @@ public class DataMessage extends AbstractMessage{
 		this.dataNodeMessage = dataNodeMessage;
 	}
 
-	public DataMessage(){}
+
 
 }

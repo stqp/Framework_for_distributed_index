@@ -5,6 +5,8 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 
 import loadBalance.LoadInfoTable;
+import message.DataMessage;
+import message.DataNodeMessage;
 import message.LoadMessage;
 import store.TreeLocalStore;
 import store.TreeNode;
@@ -180,6 +182,12 @@ public abstract class AbstractDoubleLinkDistributedIndex extends AbstractSingleL
 					priJap("相手はデータ移動受け入れ状態です。");
 					//いまはデータ移動とインデックス更新が終わると「OK」を返すようにしています。
 					sender.setHeader("LOAD_MOVE_DATA_NODES");
+					
+						DataNodeMessage dnm = new DataNodeMessage((DataNode[])dataNodeToBeMoved.toArray(new DataNode[0]), this.getMyAddress());
+						DataMessage dm = new DataMessage();
+						dm.setDataNodeMessage(dnm);
+					String message = dm.toJson();
+						return this.sendAndReceive(header+, target);
 					String responseMessage = sender.sendDataNodeAndReceive((DataNode[])dataNodeToBeMoved.toArray(new DataNode[0]), this.getMyAddress(), target);
 					priJap("次のような返事を受け取りました");
 					pri(responseMessage);

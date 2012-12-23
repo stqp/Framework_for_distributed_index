@@ -28,6 +28,7 @@ import log_analyze.AnalyzerManager;
 import main.Main;
 import message.DataMessage;
 import message.LoadMessage;
+import message.Message;
 import message.UpdateInfoMessage;
 import node.AddressNode;
 import node.DataNode;
@@ -2888,8 +2889,9 @@ public class FatBtree extends AbstractDoubleLinkDistributedIndex {
 
 
 	@Override
-	protected void updateIndex(DataNode[] dataNodesToBeRemoved,
+	protected Message updateIndex(DataNode[] dataNodesToBeRemoved,
 			InetSocketAddress target) {
+				return null;
 		// TODO 自動生成されたメソッド・スタブ
 
 	}
@@ -2903,6 +2905,12 @@ public class FatBtree extends AbstractDoubleLinkDistributedIndex {
 	@Override
 	protected String updateIndexWhenReceivingUpdateInfo(
 			UpdateInfoMessage updateInfoMessage) {
+		// TODO 自動生成されたメソッド・スタブ
+		return null;
+	}
+
+	@Override
+	protected String sendUpdateInfo(Message message) {
 		// TODO 自動生成されたメソッド・スタブ
 		return null;
 	}

@@ -14,6 +14,7 @@ import loadBalance.LoadInfoTable;
 import log_analyze.MyStringBuilder;
 import message.DataMessage;
 import message.LoadMessage;
+import message.Message;
 import message.UpdateInfoMessage;
 
 import store.TreeLocalStore;
@@ -804,7 +805,7 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 
 
 	private String tagForLoadBalanceUpdateInfo = "update";
-	
+
 
 
 	/*private void updateIndex(DataNode[] dataNodesToBeRemoved,
@@ -848,7 +849,7 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 
 	}
 */
-	
+
 
 
 	@Override
@@ -868,11 +869,11 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 				}catch(Exception e){
 					mst.appendWithReturn("fail to get address from HR. level:"+level+" i_order:"+i_order);
 				}
-				
+
 			}
 			prn= prn.childNode;
 		}
-		
+
 		return null;
 	}
 
@@ -898,8 +899,9 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 
 
 	@Override
-	protected void updateIndex(DataNode[] dataNodesToBeRemoved,
+	protected Message updateIndex(DataNode[] dataNodesToBeRemoved,
 			InetSocketAddress target) {
+				return null;
 		// TODO 自動生成されたメソッド・スタブ
 
 	}
@@ -931,6 +933,13 @@ public class PRing extends AbstractDistributedIndex implements DistributedIndex{
 	@Override
 	protected String updateIndexWhenReceivingUpdateInfo(
 			UpdateInfoMessage updateInfoMessage) {
+		// TODO 自動生成されたメソッド・スタブ
+		return null;
+	}
+
+
+	@Override
+	protected String sendUpdateInfo(Message message) {
 		// TODO 自動生成されたメソッド・スタブ
 		return null;
 	}

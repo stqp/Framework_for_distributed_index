@@ -24,21 +24,45 @@ import util.MyUtil;
 import util.NodeStatus;
 import utilTest.DataSetFile;
 
+import distributedIndex.AbstractDistributedIndex;
 import distributedIndex.DistributedIndex;
 import distributedIndex.SkipGraph;
 
 public class SkipGraphTest extends MyUtil{
 
-	private SkipGraph skipGraph;
+	private AbstractDistributedIndex distributedIndex;
 	private ID id;
 	private final static String currentPath = new File("").getAbsolutePath();
 	private FakeMessageSender fsender = new FakeMessageSender(null);	
 	private static final int putDataSize=5000;
 
-	@Before
-	public void beforeSetUp(){
-		skipGraph = new SkipGraph();
-		skipGraph.initialize(new AlphanumericID("user1000"));
+	
+	public void	addPutData(AbstractDistributedIndex dist,int num){
+		dist.initialize(new AlphanumericID("user1000"));
+		File putData = new File(connectFilePaths(currentPath,"testset","testset2","fakeput"+putDataSize+"/4","put"+num+".dat"));
+		try {
+			BufferedReader bufReader = new BufferedReader(new FileReader(putData));
+			String line;
+			String text = null;
+			FakeMessageSender fsender = new FakeMessageSender(null);
+			while((line = bufReader.readLine())!=null){
+				AlphanumericID key = new AlphanumericID(line.split(" ")[1]);
+				Node node = dist.updateKey(fsender, key, text);
+				if(node instanceof DataNode){
+					DataNode dn = (DataNode) node;
+					NodeStatus status = dist.updateData(fsender, dn);
+					dn.add(fsender, key);
+					dist.endUpdateData(fsender, status);
+				}
+			}
+			bufReader.close();
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void	addPutData(AbstractDistributedIndex dist){
+		dist.initialize(new AlphanumericID("user1000"));
 		File putData = new File(connectFilePaths(currentPath,"testset","testset2","fakeput"+putDataSize+"/4","put0.dat"));
 		try {
 			BufferedReader bufReader = new BufferedReader(new FileReader(putData));
@@ -47,38 +71,84 @@ public class SkipGraphTest extends MyUtil{
 			FakeMessageSender fsender = new FakeMessageSender(null);
 			while((line = bufReader.readLine())!=null){
 				AlphanumericID key = new AlphanumericID(line.split(" ")[1]);
-				Node node = skipGraph.updateKey(fsender, key, text);
+				Node node = dist.updateKey(fsender, key, text);
 				if(node instanceof DataNode){
 					DataNode dn = (DataNode) node;
-					NodeStatus status = skipGraph.updateData(fsender, dn);
+					NodeStatus status = dist.updateData(fsender, dn);
 					dn.add(fsender, key);
-					skipGraph.endUpdateData(fsender, status);
+					dist.endUpdateData(fsender, status);
 				}
 			}
 			bufReader.close();
 		}catch (Exception e) {
 			e.printStackTrace();
 		}
-
+	}
+	
+	@Before
+	public void beforeSetUp(){
+		distributedIndex = new SkipGraph();
 	}
 
+	
+	@Test
+	public void testSendData(){
+		AbstractDistributedIndex receiver = new SkipGraph();
+		addPutData(receiver, 1);
+		
+		addPutData(distributedIndex);
+		String commandLine="";
+		String res = ((AbstractDistributedIndex)this.distributedIndex).receiveData(commandLine);
+		assertEquals(putDataSize, distributedIndex.getTotalDataSizeByB_link());
+	}
+	
+	
 
+	@Test
+	public void testPut(){
+		addPutData(distributedIndex);
+		assertEquals(putDataSize, distributedIndex.getTotalDataSizeByB_link());
+	}
 
 
 	@Test
 	public void testGet(){
-		DataSetFile getData = new DataSetFile(connectFilePaths(currentPath,"testset","testset2","get4000hit/32","get5.dat"));
-
+		int counter=0;
+		addPutData(distributedIndex);
+		File getData = new File(connectFilePaths(currentPath,"testset","testset2","get5000hit/32","get0.dat"));
+		try {
+			BufferedReader bufReader = new BufferedReader(new FileReader(getData));
+			String line;
+			String text = null;
+			FakeMessageSender fsender = new FakeMessageSender(null);
+			while((line = bufReader.readLine())!=null){
+				AlphanumericID key = new AlphanumericID(line.split(" ")[1]);
+				Node node = distributedIndex.updateKey(fsender, key, text);
+				
+				if(node instanceof DataNode){
+					DataNode dn = (DataNode) node;
+					NodeStatus status = distributedIndex.searchData(fsender, dn);
+					if (dn.contains(key)) {
+						counter++;
+					}
+					distributedIndex.endUpdateData(fsender, status);
+				}
+			}
+			bufReader.close();
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		assertEquals(putDataSize, counter);
 	}
 
 
 
 	@Test
 	public void testDelete() throws IOException{
-
-		assertEquals(putDataSize, skipGraph.getTotalDataSizeByB_link());
+		addPutData(distributedIndex);
+		assertEquals(putDataSize, distributedIndex.getTotalDataSizeByB_link());
 		int rightToLeft =0;
-		DataNode r= skipGraph.getRightMostDataNode();
+		DataNode r= distributedIndex.getRightMostDataNode();
 		while(r!=null){
 			rightToLeft+=r.size();
 			r=r.getPrev();
@@ -89,7 +159,7 @@ public class SkipGraphTest extends MyUtil{
 		 * 左から削除してみます
 		 */
 		int numberOfKeysToDelete=0;
-		/*DataNode firstDataNode = skipGraph.getFirstDataNode();
+		DataNode firstDataNode = distributedIndex.getFirstDataNode();
 		ArrayList<DataNode> arrlistLeftToRight = new ArrayList<DataNode>();
 		for(int i=0;i<100;i++){
 			arrlistLeftToRight.add(firstDataNode);
@@ -102,19 +172,19 @@ public class SkipGraphTest extends MyUtil{
 		for(DataNode dn : arrlistLeftToRight){
 			ID[] ids = dn.getAll();
 			for(ID id: ids){
-				Node target = skipGraph.searchKey(fsender, id);
+				Node target = distributedIndex.searchKey(fsender, id);
 				if(target instanceof DataNode){
 					DataNode targetDataNode = (DataNode)target;
 					targetDataNode.remove(fsender, id);
 				}
 			}
 		}
-		assertEquals(putDataSize-numberOfKeysToDelete, skipGraph.getTotalDataSizeByB_link());
-*/
+		assertEquals(putDataSize-numberOfKeysToDelete, distributedIndex.getTotalDataSizeByB_link());
+
 		/*
 		 * 右から削除してみます。
 		 */
-		DataNode rigthMost = skipGraph.getRightMostDataNode();
+		DataNode rigthMost = distributedIndex.getRightMostDataNode();
 		ArrayList<DataNode> arrlistRightToLeft = new ArrayList<DataNode>();
 		for(int i=0;i<100;i++){
 			arrlistRightToLeft.add(rigthMost);
@@ -130,23 +200,17 @@ public class SkipGraphTest extends MyUtil{
 				if(id.toString().equals("user6877907175873323119")){
 					pri("");
 				}
-				Node target = skipGraph.searchKey(fsender, id);
+				Node target = distributedIndex.searchKey(fsender, id);
 				if(target instanceof DataNode){
 					DataNode targetDataNode = (DataNode)target;
-					int total = skipGraph.getTotalDataSizeByB_link();
+					int total = distributedIndex.getTotalDataSizeByB_link();
 					
 					boolean res = targetDataNode.remove(fsender, id);
 					tempCount++;
-					if((putDataSize-tempCount)!= skipGraph.getTotalDataSizeByB_link()){
-						pri("out");
-					}
-					if(res==false){
-						pri("false");
-					}
 				}
 			}
 		}
-		assertEquals(putDataSize-numberOfKeysToDelete, skipGraph.getTotalDataSizeByB_link());
+		assertEquals(putDataSize-numberOfKeysToDelete, distributedIndex.getTotalDataSizeByB_link());
 	}
 
 	
@@ -183,7 +247,7 @@ public class SkipGraphTest extends MyUtil{
 				+ nodeToMessage
 				+ memberShipVector
 				+ storeToMessage 
-				, skipGraph.toMessage());
+				, distributedIndex.toMessage());
 	}
 
 

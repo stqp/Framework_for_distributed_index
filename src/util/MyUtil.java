@@ -21,7 +21,7 @@ public class MyUtil implements Serializable{
 		return System.currentTimeMillis();
 	}
 	public static long getElapsedTimeFromQueryStart(){
-		return getCurrentTime()-queryStartTime;
+		return (getCurrentTime()-queryStartTime)/1000;
 	}
 
 
@@ -44,9 +44,13 @@ public class MyUtil implements Serializable{
 			sb.append(", class:" + ste.getClassName());
 			sb.append(", line:" + ste.getLineNumber());
 		}
-
 		System.out.println(sb.toString());
 	}
+
+	public static void pri(Object obj){
+		pri(obj.toString());
+	}
+	
 	public static void priJap(String str){
 		pri("====="+str+"=====");
 	}

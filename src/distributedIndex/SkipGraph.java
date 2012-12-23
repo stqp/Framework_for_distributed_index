@@ -24,6 +24,7 @@ import log_analyze.AnalyzerManager;
 import main.Main;
 import message.DataMessage;
 import message.LoadMessage;
+import message.Message;
 import message.UpdateInfoMessage;
 import node.AddressNode;
 import node.DataNode;
@@ -630,7 +631,7 @@ public class SkipGraph extends AbstractDoubleLinkDistributedIndex  {
 	 * DBConnector を分散手法側から使うようにすればよい思います。
 	 *
 	 */
-	synchronized protected void updateIndex(
+	synchronized protected Message updateIndex(
 			DataNode[] dataNodesToBeRemoved,
 			InetSocketAddress target) {
 		/*
@@ -715,6 +716,7 @@ public class SkipGraph extends AbstractDoubleLinkDistributedIndex  {
 		if(getFirstDataNode().getNext()==null){
 			priJap("左端から２番目のデータノードはありません。");
 		}
+		return null;
 	}
 
 
@@ -840,7 +842,12 @@ public class SkipGraph extends AbstractDoubleLinkDistributedIndex  {
 	@Override
 	protected String updateIndexWhenReceivingUpdateInfo(
 			UpdateInfoMessage updateInfoMessage) {
-		// TODO 自動生成されたメソッド・スタブ
+		//SkipGraph has nothing to do here.
+		return null;
+	}
+	@Override
+	protected String sendUpdateInfo(Message message) {
+		//SkipGraph has nothing to do here.
 		return null;
 	}
 

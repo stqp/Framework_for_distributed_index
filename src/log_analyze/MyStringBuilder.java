@@ -8,6 +8,7 @@ import log_analyze.MyStringBuilder;
 public class MyStringBuilder{
 	private StringBuilder sb = new StringBuilder();
 	private String name ;
+	private static char  returnChar = '\n';
 	public MyStringBuilder(String name) {
 		this.name = name;
 	}
@@ -23,7 +24,7 @@ public class MyStringBuilder{
 		return this;
 	}
 	public MyStringBuilder appendWithReturn(Object obj){
-		sb.append(obj);
+		sb.append(obj.toString()+returnChar);
 		return this;
 	}
 	public String toString(){

@@ -51,6 +51,7 @@ public class MessageSender implements Serializable{
 	}
 
 
+	//targeterは送り主、つまり自分
 	public String sendDataNodeAndReceive(DataNode[] dataNodes, InetSocketAddress targeter, InetSocketAddress target) throws IOException{
 		DataNodeMessage dnm = new DataNodeMessage(dataNodes, targeter);
 		DataMessage dm = new DataMessage();

@@ -42,12 +42,17 @@ public class Main extends MyUtil{
 	public static AlphanumericID range2 = new AlphanumericID("user8142835197696697420");
 	public static AlphanumericID range3 = new AlphanumericID("user9099933036887726303");
 
-	
-	
+
+
 	public static void main(String[] srgs){
-		
+
 		File root = new File(TESTSET_ROOT);
-		
+
+		PutToGetMaker ptgm = new PutToGetMaker();
+		ptgm.analyze();
+
+		System.exit(1);
+
 
 		for(int i_query = 0; i_query< root.list().length; i_query++){
 			File queryType = root.listFiles()[i_query];
@@ -59,11 +64,11 @@ public class Main extends MyUtil{
 				for(int i_dateset=0; i_dateset< nodeNum.list().length; i_dateset++){
 
 					File dataSet = nodeNum.listFiles()[i_dateset];
-					
+
 					dataSetAnalyzerManager = new DataSetAnalyzerManager();
 					dataSetAnalyzerManager.loopItemClear();
 
-					
+
 					String line;
 					try{
 						BufferedReader bufReader = new BufferedReader(new FileReader(dataSet.toString()));

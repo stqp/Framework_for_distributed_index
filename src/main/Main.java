@@ -124,6 +124,7 @@ public final class Main {
 
 
 		try {
+			DistributedIndex dis = (DistributedIndex)Class.forName("distributedIndex.SkipGraph").newInstance();
 			distIndex = (DistributedIndex)Class.forName(args[0]).newInstance();
 			id = (ID)Class.forName(args[1]).newInstance();
 		}
@@ -138,16 +139,15 @@ public final class Main {
 		 */
 		try {
 			Class.forName("org.postgresql.Driver");
+
+		}  catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		try{
 			connection = new DBConnector(JDBC_URL, JDBC_USER, JDBC_PASSWORD).connect();
 			//connection = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
-
-
-		} catch (SQLException e) {
+		}catch (SQLException e) {
 			System.out.println("error : cannot connect to SQL");
-			e.printStackTrace();
-
-
-		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}
 
@@ -179,7 +179,7 @@ public final class Main {
 		 *
 		 */
 
-		final int loadCheckInterval = 5000;
+		final int loadCheckInterval = 1000;
 		System.out.println("NEW LoacChecker here");
 		LoadChecker loadChecker = new LoadChecker(loadCheckInterval,distIndex, handler.getMessageReceiver());
 		Thread loadCheckerThread = new Thread( loadChecker );
